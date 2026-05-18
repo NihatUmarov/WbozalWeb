@@ -68,3 +68,19 @@ export interface GetBrandsResponse {
   brands: BrandShort[]
   selectedBrandId: number | null
 }
+
+// Stock Documents Types
+export interface GetStockDocumentsRequest {
+  model: string
+  archive: boolean
+}
+
+export interface StockDocument {
+  id: number
+  date: string
+  model: string
+  status: string
+  quantity: number
+  quantityFact: number
+  quantityDefect: number
+}

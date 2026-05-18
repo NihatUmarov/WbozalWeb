@@ -15,7 +15,6 @@
 </template>
 
 <script setup lang="ts">
-// Добавляем поддержку null | undefined в modelValue и пропс disabled
 defineProps<{
   modelValue: string | null | undefined
   label?: string
@@ -31,7 +30,7 @@ defineEmits<{
 
 <style scoped>
 .base-input-group {
-  width: 100%; /* Гарантирует правильное растягивание в сетке */
+  width: 100%;
 }
 
 .base-label {
@@ -77,7 +76,6 @@ defineEmits<{
   box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
 }
 
-/* Стили для заблокированного инпута (например, для токенов) */
 .base-input:disabled {
   background: #f1f5f9;
   color: #94a3b8;

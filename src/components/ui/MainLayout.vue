@@ -1,13 +1,15 @@
 <template>
   <div class="main-layout">
     <header class="header">
+      <!-- Логотип (скрывается на маленьких экранах) -->
       <div class="header-logo" @click="router.push('/')">WBOZAL.RU</div>
 
-      <!-- Док теперь будет четко посередине flex-контейнера -->
+      <!-- Контейнер для дока, который ВСЕГДА держит его по центру экрана -->
       <div class="header-center">
         <TheDock />
       </div>
 
+      <!-- Правая часть (Бренды и Выход) -->
       <div class="header-right">
         <div class="brand-dropdown" ref="dropdownRef">
           <div
@@ -25,7 +27,7 @@
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Поиск по названию или ID..."
+                placeholder="Поиск бренда..."
                 class="dropdown-search"
                 @click.stop
               />
@@ -35,8 +37,7 @@
               <div
                 v-for="brand in filteredBrands"
                 :key="brand.idBrand"
-                class="dropdown-item"
-                :class="{ active: brand.idBrand === selectedBrandId }"
+                :class="['dropdown-item', { active: brand.idBrand === selectedBrandId }]"
                 @click="handleBrandSelect(brand.idBrand)"
               >
                 <div class="brand-info-block">
@@ -52,12 +53,15 @@
         </div>
 
         <div class="user-menu">
-          <button class="logout-btn" @click="handleLogoutAction">Выход</button>
+          <button class="logout-btn" @click="handleLogoutAction" title="Выйти из аккаунта">
+            <!-- Иконка вместо текста для разгрузки UI на мобильных -->
+            <span class="logout-text">Выход</span>
+            <span class="logout-icon">🚪</span>
+          </button>
         </div>
       </div>
     </header>
 
-    <!-- Основной контент с верхним паддингом, чтобы не залезал под фиксированную шапку -->
     <main class="content">
       <slot />
     </main>
@@ -165,16 +169,14 @@ const handleLogoutAction = () => {
     sans-serif;
 }
 
-/* Шапка теперь ВСЕГДА сверху экрана */
 .header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 14px 40px;
+  padding: 0 40px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid #e2e8f0;
@@ -183,38 +185,42 @@ const handleLogoutAction = () => {
   box-sizing: border-box;
 }
 
-/* Флекс-контейнеры для жесткого позиционирования */
 .header-logo {
   font-weight: 800;
   color: #0f172a;
   font-size: 20px;
   letter-spacing: -0.5px;
   cursor: pointer;
-  flex: 1; /* Давит влево */
+  flex: 1; /* Даем одинаковый вес с правой частью, чтобы центр был ИДЕАЛЬНО по центру */
+  display: flex;
+  align-items: center;
 }
 
+/* МАГИЯ ВЫРАВНИВАНИЯ ДОКА ПО ЦЕНТРУ ЭКРАНА */
 .header-center {
   display: flex;
   justify-content: center;
-  flex: 2; /* Занимает центр */
+  align-items: center;
+  flex: 0 0 auto;
+  height: 100%;
+  overflow: visible;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 24px;
-  flex: 1;
-  justify-content: flex-end; /* Давит вправо */
+  gap: 20px;
+  flex: 1; /* Одинаковый вес с логотипом */
+  justify-content: flex-end; /* Прижимаем элементы к правому краю */
 }
 
-/* Изменили padding-top, чтобы контент начинался ПОД шапкой */
 .content {
-  padding: 110px 40px 40px;
+  padding: 110px 24px 40px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-/* Остальные стили дропдауна и кнопок остаются без изменений... */
+/* ДРОПДАУН БРЕНДОВ */
 .brand-dropdown {
   position: relative;
   user-select: none;
@@ -222,21 +228,26 @@ const handleLogoutAction = () => {
 .dropdown-trigger {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 8px 12px;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
   transition: all 0.2s ease;
 }
+.trigger-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
 .dropdown-trigger:hover,
 .dropdown-trigger.is-open {
   background: #e2e8f0;
-  border-color: #cbd5e1;
   color: #0f172a;
 }
 .dropdown-trigger.not-selected {
@@ -258,7 +269,7 @@ const handleLogoutAction = () => {
   top: 100%;
   right: 0;
   margin-top: 8px;
-  width: 300px;
+  width: 280px;
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -275,7 +286,7 @@ const handleLogoutAction = () => {
   transform: translateY(0);
 }
 .search-wrapper {
-  padding: 12px;
+  padding: 10px;
   border-bottom: 1px solid #f1f5f9;
   background: #f8fafc;
 }
@@ -285,32 +296,27 @@ const handleLogoutAction = () => {
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-size: 13px;
-  font-weight: 500;
   box-sizing: border-box;
   outline: none;
-  transition: all 0.2s;
 }
 .dropdown-search:focus {
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   background: white;
 }
 .dropdown-list {
-  max-height: 260px;
+  max-height: 240px;
   overflow-y: auto;
 }
 .dropdown-item {
-  padding: 10px 16px;
+  padding: 10px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
   border-left: 3px solid transparent;
-  transition: all 0.15s;
 }
 .dropdown-item:hover {
   background: #f8fafc;
-  border-left-color: #cbd5e1;
 }
 .dropdown-item.active {
   background: #f5f3ff;
@@ -322,7 +328,7 @@ const handleLogoutAction = () => {
   gap: 2px;
 }
 .brand-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #0f172a;
 }
@@ -331,10 +337,10 @@ const handleLogoutAction = () => {
   font-weight: 600;
 }
 .brand-id {
-  font-size: 11px;
+  font-size: 10px;
   color: #64748b;
   background: #f1f5f9;
-  padding: 1px 6px;
+  padding: 1px 4px;
   border-radius: 4px;
   width: fit-content;
 }
@@ -345,29 +351,36 @@ const handleLogoutAction = () => {
 .check-mark {
   color: #6366f1;
   font-weight: bold;
-  font-size: 14px;
 }
 .no-results {
-  padding: 24px 16px;
+  padding: 20px 14px;
   text-align: center;
   color: #94a3b8;
   font-size: 13px;
 }
+
 .logout-btn {
   background: none;
   border: none;
   color: #64748b;
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px;
-  transition: color 0.2s;
-  padding: 6px 12px;
-  border-radius: 6px;
+  font-size: 13px;
+  transition: all 0.2s;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .logout-btn:hover {
   color: #ef4444;
   background: #fef2f2;
 }
+.logout-icon {
+  display: none;
+}
+
 @keyframes pulse {
   0%,
   100% {
@@ -378,16 +391,37 @@ const handleLogoutAction = () => {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1050px) {
   .header {
-    padding: 14px 20px;
+    padding: 0 20px;
   }
+
+  .header-logo {
+    display: none;
+  }
+
   .header-center {
-    order: 3;
-    flex: none;
-  }
-  .header-right {
     flex: 1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 650px) {
+  .header-right {
+    gap: 10px;
+  }
+  .trigger-text {
+    max-width: 80px;
+  }
+  .logout-text {
+    display: none;
+  }
+  .logout-icon {
+    display: block;
+    font-size: 16px;
+  }
+  .logout-btn {
+    padding: 8px;
   }
 }
 </style>

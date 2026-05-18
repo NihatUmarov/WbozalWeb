@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import ProfileView from '../views/ProfileView.vue'
-import StocksView from '@/views/StocksView.vue'
+import StockDocumentsView from '../views/StockDocumentsView.vue' // Импортируем новый экран
 
 const routes = [
   {
@@ -20,9 +20,9 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/stocks',
-    name: 'Stocks',
-    component: StocksView,
+    path: '/documents',
+    name: 'StockDocuments',
+    component: StockDocumentsView,
     meta: { requiresAuth: true },
   },
 ]
