@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import StockDocumentsView from '../views/StockDocumentsView.vue' // Импортируем новый экран
+import RemainsList from '../views/RemainsList.vue' // Импортируем новый экран
 
 const routes = [
   {
@@ -23,6 +24,12 @@ const routes = [
     path: '/documents',
     name: 'StockDocuments',
     component: StockDocumentsView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/remains',
+    name: 'RemainsList',
+    component: RemainsList,
     meta: { requiresAuth: true },
   },
 ]

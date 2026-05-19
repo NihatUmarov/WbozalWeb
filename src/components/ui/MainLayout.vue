@@ -1,15 +1,12 @@
 <template>
   <div class="main-layout">
     <header class="header">
-      <!-- Логотип (скрывается на маленьких экранах) -->
       <div class="header-logo" @click="router.push('/')">WBOZAL.RU</div>
 
-      <!-- Контейнер для дока, который ВСЕГДА держит его по центру экрана -->
       <div class="header-center">
         <TheDock />
       </div>
 
-      <!-- Правая часть (Бренды и Выход) -->
       <div class="header-right">
         <div class="brand-dropdown" ref="dropdownRef">
           <div
@@ -393,7 +390,8 @@ const handleLogoutAction = () => {
 
 @media (max-width: 1050px) {
   .header {
-    padding: 0 20px;
+    padding: 0 16px; /* Уменьшили боковые поля, выиграли 48px пространства */
+    gap: 12px;
   }
 
   .header-logo {
@@ -407,21 +405,30 @@ const handleLogoutAction = () => {
 }
 
 @media (max-width: 650px) {
+  .header {
+    padding: 0 10px; /* Максимально прижимаем к краям экрана на смартфонах */
+    gap: 8px; /* Минимальные зазоры между доком и брендом */
+  }
+
   .header-right {
-    gap: 10px;
+    gap: 8px;
   }
+
   .trigger-text {
-    max-width: 80px;
+    max-width: 75px; /* Защита: название бренда Lula Lula аккуратно превратится в Lula Lu... но не перенесется вниз */
   }
+
   .logout-text {
     display: none;
   }
+
   .logout-icon {
     display: block;
     font-size: 16px;
   }
+
   .logout-btn {
-    padding: 8px;
+    padding: 6px;
   }
 }
 </style>

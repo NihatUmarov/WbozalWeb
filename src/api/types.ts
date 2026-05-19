@@ -84,3 +84,13 @@ export interface StockDocument {
   quantityFact: number
   quantityDefect: number
 }
+
+export interface RemainItem {
+  idName: number | null
+  barcode: string | null
+  irQuant: number
+  iBronTask: number | null
+  isDefect: boolean
+  cName: string | null
+  cArt: string | null
+}

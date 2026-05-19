@@ -95,8 +95,6 @@ import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import SocialLinks from '@/components/ui/SocialLinks.vue'
 
-// Укажи здесь точный относительный путь к файлу, где объявлен authService
-// Например, если он лежит в той же папке api, что и httpClient:
 import { authService } from '../api/authService'
 
 const router = useRouter()

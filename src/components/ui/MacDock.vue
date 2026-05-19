@@ -21,7 +21,7 @@
 import { ref } from 'vue'
 
 const menuItems = ref([
-  { label: 'Остатки', icon: '📦', to: '/stocks' },
+  { label: 'Остатки', icon: '📦', to: '/remains' },
   { label: 'Накладные', icon: '📑', to: '/documents' },
   { label: 'Карточки', icon: '💳', to: '/cards' },
   { label: 'Профиль', icon: '👤', to: '/profile' },
