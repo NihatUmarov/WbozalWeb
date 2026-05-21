@@ -24,30 +24,32 @@
           </button>
         </div>
 
-        <!-- Наша новая базовая таблица -->
         <BaseTable :items="documents" :columns="columns" :loading="loading">
           <template #cell(id)="{ value }">
             <span class="bold-text">#{{ value }}</span>
           </template>
 
           <template #cell(date)="{ value }">
-            <!-- Исправлено: кастуем в строку -->
             {{ formatDate(String(value)) }}
           </template>
 
           <template #cell(status)="{ value }">
-            <!-- Исправлено: кастуем в строку -->
             <span :class="['status-badge', getStatusClass(String(value))]">
               {{ value || 'Нет статуса' }}
             </span>
           </template>
 
           <template #cell(quantityFact)="{ value }">
-            {{ currentModel === 'RET' ? '—' : value }}
+            <span v-if="currentModel === 'RET'">—</span>
+            <span v-else :class="['quant-cell', Number(value) > 0 ? 'has-stock' : 'empty-stock']">
+              {{ Number(value) > 0 ? `${value} шт.` : '0' }}
+            </span>
           </template>
 
           <template #cell(quantityDefect)="{ value }">
-            <span :class="{ 'has-defect': Number(value) > 0 }">{{ value }}</span>
+            <span :class="['defect-cell', Number(value) > 0 ? 'has-defect' : 'no-defect']">
+              {{ Number(value) > 0 ? `${value} шт.` : '0' }}
+            </span>
           </template>
         </BaseTable>
       </div>
@@ -142,10 +144,12 @@ onMounted(() => {
   padding: 20px;
   background-color: #f8fafc;
   padding-bottom: 140px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .documents-container {
-  width: 100%;
-  max-width: 95%;
+  width: 90%; /* Сделали 90% как на странице карточек */
+  margin: 0 auto;
 }
 
 .header-section {
@@ -242,10 +246,32 @@ input:checked + .toggle-slider::before {
   font-weight: 600;
   color: #4f46e5 !important;
 }
-.has-defect {
-  color: #ef4444 !important;
+
+/* Кастомные стили счетчиков (как на странице карточек) */
+.quant-cell {
   font-weight: 600;
 }
+.has-stock {
+  color: #10b981; /* Зеленый, если количество принято */
+}
+.empty-stock {
+  color: #94a3b8; /* Спокойный серый ноль */
+}
+
+.defect-cell {
+  font-weight: 600;
+}
+.has-defect {
+  color: #ef4444 !important; /* Яркий красный текст */
+  background: #fef2f2; /* Бэйджик-подложка */
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.no-defect {
+  color: #cbd5e1; /* Неброский ноль брака */
+}
+
 .status-badge {
   display: inline-block;
   padding: 4px 10px;

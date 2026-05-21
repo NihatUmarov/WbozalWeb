@@ -39,7 +39,6 @@
             <BaseButton :loading="loading" @click="handleSendOtp"> Продолжить </BaseButton>
           </div>
 
-          <!-- ШАГ 2: OTP (6 знаков) -->
           <div v-else key="otp" class="step-box">
             <button class="back-link" @click="step = 1">
               <span class="arrow">←</span> Назад к почте

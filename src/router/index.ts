@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import ProfileView from '../views/ProfileView.vue'
-import StockDocumentsView from '../views/StockDocumentsView.vue' // Импортируем новый экран
-import RemainsList from '../views/RemainsList.vue' // Импортируем новый экран
+import StockDocumentsView from '../views/StockDocumentsView.vue'
+import RemainsList from '../views/RemainsList.vue'
+import CardsView from '../views/CardsView.vue' // <-- 1. ИМПОРТИРУЕМ НАШ ЭКРАН КАРТОЧЕК
 
 const routes = [
   {
@@ -31,6 +32,12 @@ const routes = [
     name: 'RemainsList',
     component: RemainsList,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/cards', // <-- 2. ДОБАВЛЯЕМ ПУТЬ ДЛЯ КАРТОЧЕК
+    name: 'CardsList',
+    component: CardsView,
+    meta: { requiresAuth: true }, // Закрываем от неавторизованных
   },
 ]
 

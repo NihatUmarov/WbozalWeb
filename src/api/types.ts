@@ -94,3 +94,13 @@ export interface RemainItem {
   cName: string | null
   cArt: string | null
 }
+
+export interface CardItem {
+  idName: number
+  cName: string | null
+  cArt: string | null
+  irQuant: number
+  iBronTask: number
+  defectQuant: number
+  barcodes: string[] // Наш массив мульти-ШК
+}

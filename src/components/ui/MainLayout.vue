@@ -207,17 +207,17 @@ const handleLogoutAction = () => {
   display: flex;
   align-items: center;
   gap: 20px;
-  flex: 1; /* Одинаковый вес с логотипом */
-  justify-content: flex-end; /* Прижимаем элементы к правому краю */
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .content {
   padding: 110px 24px 40px;
-  max-width: 1200px;
+  width: 90%;
+  max-width: 1800px;
   margin: 0 auto;
 }
 
-/* ДРОПДАУН БРЕНДОВ */
 .brand-dropdown {
   position: relative;
   user-select: none;

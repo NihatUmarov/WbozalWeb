@@ -168,8 +168,9 @@ const filteredAndSortedItems = computed(() => {
 }
 
 .modern-table {
-  width: 100%;
-  border-collapse: separate; /* Важно для работы sticky header с границами */
+  width: 100%; /* Таблица пытается занять ширину контейнера */
+  min-width: 100%; /* ГЛАВНОЕ: Гарантирует, что она не будет меньше 100% ширины */
+  border-collapse: separate;
   border-spacing: 0;
   text-align: left;
   font-size: 14px;
