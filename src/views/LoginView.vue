@@ -124,10 +124,9 @@ const handleSendOtp = async () => {
   } catch (error: unknown) {
     let errorMessage = 'Ошибка при отправке кода. Попробуйте позже.'
 
-    // Безопасное извлечение ошибки без использования any
     if (axios.isAxiosError(error) && error.response?.data) {
-      const data = error.response.data as { message?: string }
-      if (data.message) errorMessage = data.message
+      const data = error.response.data as { msg?: string; message?: string }
+      errorMessage = data.msg || data.message || errorMessage
     }
 
     toastRef.value?.show(errorMessage)
@@ -151,8 +150,8 @@ const handleLogin = async () => {
     let errorMessage = 'Неверный код или ошибка сервера'
 
     if (axios.isAxiosError(error) && error.response?.data) {
-      const data = error.response.data as { message?: string }
-      if (data.message) errorMessage = data.message
+      const data = error.response.data as { msg?: string; message?: string }
+      errorMessage = data.msg || data.message || errorMessage
     }
 
     toastRef.value?.show(errorMessage)

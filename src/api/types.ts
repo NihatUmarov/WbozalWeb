@@ -1,72 +1,114 @@
 // Auth Types
 export interface SendOtpRequest {
-  email: string
+  em: string
 }
 
 export interface SendOtpResponse {
-  message: string
-  expiresAt: string
+  msg: string
 }
 
 export interface VerifyOtpRequest {
-  email: string
+  em: string
   otp: string
 }
 
 export interface LoginResponse {
-  message: string
-  token: string
-  refreshToken: string
-  userPublicId: string
+  msg: string
+  tok: string
+  rf_tok: string
+  role: string
 }
 
 export interface RefreshTokenRequest {
-  accessToken: string
-  refreshToken: string
+  t_tok: string
+  rf_tok: string
 }
 
 export interface RefreshTokenResponse {
-  token: string
-  refreshToken: string
+  tok: string
+  rf_tok: string
+  role: string
 }
 
-export interface BrandInfoResponse {
-  idBrand: number
-  brandName: string | null
-  sellerName: string | null
-  sellerFullName: string | null
-  emailWork: string | null
-  phoneWork: string | null
-  adress: string | null
+export interface SwitchProfileRequest {
+  jid: number | null
+}
+
+export interface SwitchProfileResponse {
+  msg: string
+  tok: string
+  rf_tok: string
+  role: string
+}
+
+// Jurperson Types
+// Jurperson Types
+export interface JurpersonInfoResponse {
+  idJurperson: number
+  jurpersonName: string | null
+  jurpersonFullName: string | null
+  jurAdress: string | null
+  postAdress: string | null
+  rAccount: string | null
+  kAccount: string | null
+  bik: string | null
   inn: string | null
-  wbToken: string | null
-  ozToken: string | null
-  sberToken: string | null
-  ymToken: string | null
+  bank: string | null
+  okonh: string | null
+  okpo: string | null
+  phone: string | null
+  fax: string | null
+  outIdJurperson: string | null
+  bLogistic: boolean | null
+  iExpPercentMin: number | null
+  iExpDayMin: number | null
+  kpp: string | null
+  email: string | null
+  agreeNum: string | null
 }
 
-export interface UpdateBrandRequest {
-  brandName: string | null
-  sellerName: string | null
-  sellerFullName: string | null
-  emailWork: string | null
-  phoneWork: string | null
-  adress: string | null
-  inn: string | null
+export interface UpdateJurpersonRequest {
+  jurpersonName?: string | null
+  jurpersonFullName?: string | null
+  jurAdress?: string | null
+  postAdress?: string | null
+  rAccount?: string | null
+  kAccount?: string | null
+  bik?: string | null
+  inn?: string | null
+  bank?: string | null
+  okonh?: string | null
+  okpo?: string | null
+  phone?: string | null
+  fax?: string | null
+  kpp?: string | null
+  email?: string | null
+  agreeNum?: string | null
 }
 
-export interface UpdateBrandResponse {
+export interface UpdateJurpersonResponse {
   message: string
 }
 
-export interface BrandShort {
-  idBrand: number
-  brandName: string
+export interface JurpersonShort {
+  idJurperson: number
+  jurpersonName: string
+  inn: string | null
 }
 
-export interface GetBrandsResponse {
-  brands: BrandShort[]
-  selectedBrandId: number | null
+export interface GetJurpersonsResponse {
+  jurpersons: JurpersonShort[]
+  activeId: number | null
+}
+
+export interface SelectJurpersonRequest {
+  idJurperson: number
+}
+
+export interface SelectJurpersonResponse {
+  message: string
+  tok: string
+  rf_tok: string
 }
 
 // Stock Documents Types
@@ -102,5 +144,5 @@ export interface CardItem {
   irQuant: number
   iBronTask: number
   defectQuant: number
-  barcodes: string[] // Наш массив мульти-ШК
+  barcodes: string[]
 }

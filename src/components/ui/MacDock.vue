@@ -27,7 +27,6 @@ const menuItems = ref([
   { label: 'Профиль', icon: '👤', to: '/profile' },
 ])
 </script>
-
 <style scoped>
 .dock-container {
   display: flex;

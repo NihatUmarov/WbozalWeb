@@ -28,8 +28,8 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
   failedQueue = []
 }
 
-export const getSelectedBrandId = (): string | null => {
-  return localStorage.getItem('selected_brand_id')
+export const getSelectedJurpersonId = (): string | null => {
+  return localStorage.getItem('selected_jurperson_id')
 }
 
 httpClient.interceptors.request.use(
@@ -39,9 +39,9 @@ httpClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
 
-    const brandId = getSelectedBrandId()
-    if (brandId && config.headers) {
-      config.headers['X-Brand-Id'] = brandId
+    const jurpersonId = getSelectedJurpersonId()
+    if (jurpersonId && config.headers) {
+      config.headers['X-Jurperson-Id'] = jurpersonId
     }
 
     return config
@@ -91,17 +91,18 @@ httpClient.interceptors.response.use(
     return new Promise((resolve, reject) => {
       axios
         .post<RefreshTokenResponse>(`${BASE_URL}/api/auth/refresh`, {
-          accessToken,
-          refreshToken,
+          t_tok: accessToken,
+          rf_tok: refreshToken,
         })
         .then(({ data }) => {
-          localStorage.setItem('access_token', data.token)
-          localStorage.setItem('refresh_token', data.refreshToken)
+          localStorage.setItem('access_token', data.tok)
+          localStorage.setItem('refresh_token', data.rf_tok)
+          localStorage.setItem('user_role', data.role)
 
-          processQueue(null, data.token)
+          processQueue(null, data.tok)
 
           if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${data.token}`
+            originalRequest.headers.Authorization = `Bearer ${data.tok}`
           }
           resolve(httpClient(originalRequest))
         })
@@ -120,6 +121,7 @@ httpClient.interceptors.response.use(
 function handleLogout() {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
-  localStorage.removeItem('selected_brand_id')
+  localStorage.removeItem('user_role')
+  localStorage.removeItem('selected_jurperson_id')
   window.location.href = '/login'
 }

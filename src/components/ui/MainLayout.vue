@@ -11,11 +11,11 @@
         <div class="brand-dropdown" ref="dropdownRef">
           <div
             class="dropdown-trigger"
-            :class="{ 'not-selected': !selectedBrandId, 'is-open': isDropdownOpen }"
+            :class="{ 'not-selected': !selectedJurpersonId, 'is-open': isDropdownOpen }"
             @click="toggleDropdown"
           >
             <span class="folder-icon">💼</span>
-            <span class="trigger-text">{{ currentBrandName }}</span>
+            <span class="trigger-text">{{ currentJurpersonName }}</span>
             <span class="arrow-icon" :class="{ rotate: isDropdownOpen }">▾</span>
           </div>
 
@@ -24,7 +24,7 @@
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Поиск бренда..."
+                placeholder="Поиск организации..."
                 class="dropdown-search"
                 @click.stop
               />
@@ -32,19 +32,24 @@
 
             <div class="dropdown-list">
               <div
-                v-for="brand in filteredBrands"
-                :key="brand.idBrand"
-                :class="['dropdown-item', { active: brand.idBrand === selectedBrandId }]"
-                @click="handleBrandSelect(brand.idBrand)"
+                v-for="jurperson in filteredJurpersons"
+                :key="jurperson.idJurperson"
+                :class="[
+                  'dropdown-item',
+                  { active: jurperson.idJurperson === selectedJurpersonId },
+                ]"
+                @click="handleJurpersonSelect(jurperson.idJurperson)"
               >
                 <div class="brand-info-block">
-                  <span class="brand-name">{{ brand.brandName }}</span>
-                  <span class="brand-id">ID: {{ brand.idBrand }}</span>
+                  <span class="brand-name">{{ jurperson.jurpersonName }}</span>
+                  <span class="brand-id">ID: {{ jurperson.idJurperson }}</span>
                 </div>
-                <span v-if="brand.idBrand === selectedBrandId" class="check-mark">✓</span>
+                <span v-if="jurperson.idJurperson === selectedJurpersonId" class="check-mark"
+                  >✓</span
+                >
               </div>
 
-              <div v-if="filteredBrands.length === 0" class="no-results">Ничего не найдено</div>
+              <div v-if="filteredJurpersons.length === 0" class="no-results">Ничего не найдено</div>
             </div>
           </div>
         </div>
@@ -70,8 +75,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { brandService } from '@/api/brandService'
-import type { BrandShort, GetBrandsResponse } from '@/api/types'
+import { jurpersonService } from '@/api/jurpersonService'
+import { authService } from '@/api/authService'
+
+import type { JurpersonShort, GetJurpersonsResponse } from '@/api/types'
 import TheToast from '@/components/ui/TheToast.vue'
 import TheDock from '@/components/ui/MacDock.vue'
 
@@ -79,8 +86,8 @@ const router = useRouter()
 const toastRef = ref<InstanceType<typeof TheToast> | null>(null)
 const dropdownRef = ref<HTMLElement | null>(null)
 
-const brands = ref<BrandShort[]>([])
-const selectedBrandId = ref<number | null>(null)
+const jurpersons = ref<JurpersonShort[]>([])
+const selectedJurpersonId = ref<number | null>(null)
 const searchQuery = ref('')
 const isDropdownOpen = ref(false)
 
@@ -94,18 +101,18 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
-const currentBrandName = computed(() => {
-  const active = brands.value.find((b) => b.idBrand === selectedBrandId.value)
-  return active ? active.brandName : 'Выберите бренд'
+const currentJurpersonName = computed(() => {
+  const active = jurpersons.value.find((j) => j.idJurperson === selectedJurpersonId.value)
+  return active ? active.jurpersonName : 'Выберите организацию'
 })
 
-const filteredBrands = computed(() => {
+const filteredJurpersons = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return brands.value
+  if (!query) return jurpersons.value
 
-  return brands.value.filter((b) => {
-    const name = b.brandName ? b.brandName.toLowerCase() : ''
-    const id = b.idBrand ? b.idBrand.toString() : ''
+  return jurpersons.value.filter((j) => {
+    const name = j.jurpersonName ? j.jurpersonName.toLowerCase() : ''
+    const id = j.idJurperson ? j.idJurperson.toString() : ''
     return name.includes(query) || id.includes(query)
   })
 })
@@ -113,20 +120,20 @@ const filteredBrands = computed(() => {
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
   try {
-    const data: GetBrandsResponse = await brandService.getBrands()
-    brands.value = data.brands
+    const data: GetJurpersonsResponse = await jurpersonService.getJurpersons()
+    jurpersons.value = data.jurpersons
 
-    if (data.selectedBrandId) {
-      selectedBrandId.value = data.selectedBrandId
-      localStorage.setItem('selected_brand_id', data.selectedBrandId.toString())
+    if (data.activeId) {
+      selectedJurpersonId.value = data.activeId
+      localStorage.setItem('selected_jurperson_id', data.activeId.toString())
     } else {
-      selectedBrandId.value = null
-      localStorage.removeItem('selected_brand_id')
-      toastRef.value?.show('Пожалуйста, выберите рабочий бренд в шапке', 'warning')
+      selectedJurpersonId.value = null
+      localStorage.removeItem('selected_jurperson_id')
+      toastRef.value?.show('Пожалуйста, выберите организацию в шапке', 'warning')
     }
   } catch (err) {
     console.error(err)
-    toastRef.value?.show('Не удалось загрузить список брендов', 'error')
+    toastRef.value?.show('Не удалось загрузить список организаций', 'error')
   }
 })
 
@@ -134,19 +141,24 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-const handleBrandSelect = async (idBrand: number) => {
-  if (idBrand === selectedBrandId.value) return
+// Наша новая рабочая логика переключения через jid на /api/auth/switch_profile
+const handleJurpersonSelect = async (idJurperson: number) => {
+  if (idJurperson === selectedJurpersonId.value) return
   try {
-    await brandService.selectBrand(idBrand)
-    localStorage.setItem('selected_brand_id', idBrand.toString())
-    selectedBrandId.value = idBrand
+    await authService.switchProfile(idJurperson)
+
+    localStorage.setItem('selected_jurperson_id', idJurperson.toString())
+    selectedJurpersonId.value = idJurperson
     isDropdownOpen.value = false
-    toastRef.value?.show('Бренд успешно изменен! Перезагрузка...', 'success')
+
+    toastRef.value?.show('Организация успешно изменена! Перезагрузка...', 'success')
+
     setTimeout(() => {
       window.location.reload()
     }, 1000)
-  } catch {
-    toastRef.value?.show('Не удалось переключить бренд', 'error')
+  } catch (error) {
+    console.error(error)
+    toastRef.value?.show('Не удалось переключить организацию', 'error')
   }
 }
 

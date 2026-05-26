@@ -1,36 +1,35 @@
 import httpClient from './httpClient'
 import type {
-  BrandInfoResponse,
-  UpdateBrandRequest,
-  UpdateBrandResponse,
-  GetBrandsResponse,
+  JurpersonInfoResponse,
+  UpdateJurpersonRequest,
+  UpdateJurpersonResponse,
+  GetJurpersonsResponse,
 } from './types'
 
 export const brandService = {
-  async getBrand(): Promise<BrandInfoResponse> {
-    const { data } = await httpClient.post<BrandInfoResponse>('/api/seller/get_info_brand')
+  async getBrand(): Promise<JurpersonInfoResponse> {
+    const { data } = await httpClient.post<JurpersonInfoResponse>(
+      '/api/jurperson/get_info_jurperson',
+    )
     return data
   },
 
-  // 2. Обновить данные бренда
-  async updateBrand(payload: UpdateBrandRequest): Promise<UpdateBrandResponse> {
-    const { data } = await httpClient.post<UpdateBrandResponse>(
-      '/api/seller/update_info_brand',
+  async updateBrand(payload: UpdateJurpersonRequest): Promise<UpdateJurpersonResponse> {
+    const { data } = await httpClient.post<UpdateJurpersonResponse>(
+      '/api/jurperson/update_info_jurperson',
       payload,
     )
     return data
   },
 
-  // 3. Получить все бренды
-  async getBrands(): Promise<GetBrandsResponse> {
-    const { data } = await httpClient.post<GetBrandsResponse>('/api/seller/get_brands')
+  async getBrands(): Promise<GetJurpersonsResponse> {
+    const { data } = await httpClient.post<GetJurpersonsResponse>('/api/jurperson/get_jurpersons')
     return data
   },
 
-  // 4. Записать выбранный бренд в базу данных
-  async selectBrand(idBrand: number): Promise<{ message: string }> {
-    const { data } = await httpClient.post<{ message: string }>('/api/seller/select_brand', {
-      idBrand,
+  async selectBrand(idJurperson: number): Promise<{ message: string }> {
+    const { data } = await httpClient.post<{ message: string }>('/api/jurperson/select_jurperson', {
+      idJurperson,
     })
     return data
   },
