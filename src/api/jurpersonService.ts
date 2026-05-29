@@ -7,6 +7,7 @@ import type {
   SelectJurpersonResponse,
   CreateJurpersonRequest,
   CreateJurpersonResponse,
+  SuggestByInnResponse,
 } from './types'
 
 export const jurpersonService = {
@@ -41,6 +42,13 @@ export const jurpersonService = {
       localStorage.setItem('refresh_token', data.rf_tok)
     }
 
+    return data
+  },
+
+  async suggestByInn(inn: string): Promise<SuggestByInnResponse> {
+    const { data } = await httpClient.get<SuggestByInnResponse>(
+      `/api/jurperson/suggest_by_inn/${inn}`,
+    )
     return data
   },
 

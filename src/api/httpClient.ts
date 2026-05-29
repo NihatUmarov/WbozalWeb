@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios'
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import type { RefreshTokenResponse } from './types'
 
-const BASE_URL = 'https://api.wbozal.ru' //'http://localhost:5123'
+const BASE_URL = 'https://api.wbozal.ru'
 
 const httpClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -32,6 +32,19 @@ export const getSelectedJurpersonId = (): string | null => {
   return localStorage.getItem('selected_jurperson_id')
 }
 
+function handleLogout() {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('user_role')
+  localStorage.removeItem('selected_jurperson_id')
+
+  // КРИТИЧЕСКИ ВАЖНО: Если мы уже на странице логина, не редиректим и не рефрешим страницу!
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login'
+  }
+}
+
+// 1. ПЕРЕХВАТЧИК ЗАПРОСОВ (Request)
 httpClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('access_token')
@@ -49,8 +62,7 @@ httpClient.interceptors.request.use(
   (error) => Promise.reject(error),
 )
 
-export default httpClient
-
+// 2. ПЕРЕХВАТЧИК ОТВЕТОВ (Response) — ДОЛЖЕН БЫТЬ ПЕРЕД EXPORT DEFAULT
 httpClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -60,12 +72,14 @@ httpClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    // Если 401 упал сам запрос рефреша — мгновенный логаут без лишних кругов
     if (originalRequest.url?.includes('/api/auth/refresh')) {
       handleLogout()
       return Promise.reject(error)
     }
 
     if (originalRequest._retry) {
+      handleLogout() // Если повторный запрос ОПЯТЬ выдал 401 — тушим свет
       return Promise.reject(error)
     }
 
@@ -118,10 +132,4 @@ httpClient.interceptors.response.use(
   },
 )
 
-function handleLogout() {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-  localStorage.removeItem('user_role')
-  localStorage.removeItem('selected_jurperson_id')
-  window.location.href = '/login'
-}
+export default httpClient

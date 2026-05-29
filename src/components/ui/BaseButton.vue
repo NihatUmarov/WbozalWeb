@@ -59,7 +59,7 @@ defineProps<{
   height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
-  border-top-color: #fff;
+  border-top-color: var(--color-primary);
   animation: spin 0.6s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
 }
 

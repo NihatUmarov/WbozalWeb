@@ -28,35 +28,35 @@ const links = [
 <style scoped>
 .social-links {
   display: flex;
-  gap: 16px;
+  gap: var(--spacing-12);
 }
 
 .social-icon {
   width: 44px;
   height: 44px;
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border-radius: var(--border-radius-12);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-medium);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  overflow: hidden; /* Чтобы иконки не вылезали за края */
+  overflow: hidden;
 }
 
 .svg-icon {
   width: 24px;
   height: 24px;
   object-fit: contain;
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-medium);
 }
 
 /* Эффект при наведении */
 .social-icon:hover {
-  background: #6366f1;
-  border-color: #818cf8;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   transform: translateY(-3px);
-  box-shadow: 0 8px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 8px 15px var(--color-shadow);
 }
 
 .social-icon:hover .svg-icon {

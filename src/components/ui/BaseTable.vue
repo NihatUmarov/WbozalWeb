@@ -191,9 +191,14 @@ const filteredAndSortedItems = computed(() => {
 
 .modern-table td {
   padding: 12px 16px;
-  color: #334155;
-  border-bottom: 1px solid #f1f5f9;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-light);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.modern-table th {
+  font-variant-numeric: tabular-nums;
 }
 
 .modern-table tr:last-child td {
@@ -218,7 +223,7 @@ const filteredAndSortedItems = computed(() => {
 }
 
 .sortable:hover {
-  background: #f1f5f9;
+  background: var(--color-background-secondary);
 }
 
 .sort-icon {
@@ -230,7 +235,7 @@ const filteredAndSortedItems = computed(() => {
 }
 
 .sort-icon .active {
-  color: #4f46e5;
+  color: var(--color-primary);
 }
 
 /* РЕСТАЙЛИНГ ИНПУТОВ-ФИЛЬТРОВ */
@@ -253,9 +258,9 @@ const filteredAndSortedItems = computed(() => {
 
 .table-filter-input:focus {
   outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
-  background-color: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
+  background-color: var(--color-background);
 }
 
 /* Стили состояний */
@@ -276,11 +281,11 @@ const filteredAndSortedItems = computed(() => {
 .spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #4f46e5;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-12);
 }
 
 @keyframes spin {

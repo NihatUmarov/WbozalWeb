@@ -1,131 +1,148 @@
 <template>
-  <Transition name="toast">
-    <div v-if="visible" class="toast-wrapper">
-      <!-- Динамически меняем класс в зависимости от типа: error, success, warning -->
-      <div :class="['toast-content', toastType]">
-        <div class="icon-circle">
-          <!-- Динамическая иконка -->
-          {{ icon }}
-        </div>
-        <span class="message">{{ message }}</span>
+  <TransitionGroup name="toast-list" tag="div" class="toast-list">
+    <div
+      v-for="toast in toasts"
+      :key="toast.id"
+      class="toast-item"
+      :class="[`toast-item--${toast.type}`]"
+    >
+      <div class="toast-item__content">
+        <span class="toast-item__icon" :class="[`toast-item__icon--${toast.type}`]">{{
+          toast.icon
+        }}</span>
+        <p class="toast-item__message">{{ toast.message }}</p>
       </div>
     </div>
-  </Transition>
+  </TransitionGroup>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
-// Создаем тип для доступных вариантов
-type ToastType = 'error' | 'success' | 'warning'
+interface Toast {
+  id: number
+  message: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  icon: string
+}
 
-const visible = ref(false)
-const message = ref('')
-const toastType = ref<ToastType>('error') // по умолчанию пусть будет ошибка
+const toasts = ref<Toast[]>([])
+let toastId = 0
 
-// Вычисляем иконку в зависимости от типа тоста
-const icon = computed(() => {
-  if (toastType.value === 'success') return '✓'
-  if (toastType.value === 'warning') return '⚠'
-  return '!' // для error
-})
+const show = (
+  message: string,
+  type: 'success' | 'error' | 'warning' | 'info' = 'info',
+  duration = 3000,
+) => {
+  const icon = computed(() => {
+    if (type === 'success') return '✓'
+    if (type === 'warning') return '⚠'
+    if (type === 'error') return '!'
+    return 'i'
+  })
 
-// Теперь функция принимает еще и тип (по умолчанию 'success', если не передали)
-const show = (text: string, type: ToastType = 'success', duration = 3000) => {
-  message.value = text
-  toastType.value = type
-  visible.value = true
+  const newToast: Toast = {
+    id: toastId++,
+    message,
+    type,
+    icon: icon.value,
+  }
+
+  // ИСПРАВЛЕНИЕ 1: Добавляем в начало массива, чтобы новый тост всегда был самым нижним у основания экрана
+  toasts.value.unshift(newToast)
 
   setTimeout(() => {
-    visible.value = false
+    toasts.value = toasts.value.filter((t) => t.id !== newToast.id)
   }, duration)
 }
 
-// Экспортируем функцию наружу
 defineExpose({ show })
 </script>
 
 <style scoped>
-.toast-wrapper {
+.toast-list {
   position: fixed;
-  bottom: 40px;
+  /* ИСПРАВЛЕНИЕ 2: Переносим контейнер вниз экрана */
+  bottom: var(--spacing-24);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
+  z-index: var(--z-toast);
+  display: flex;
+  /* ИСПРАВЛЕНИЕ 3: column-reverse заставляет список расти снизу вверх */
+  flex-direction: column-reverse;
+  gap: var(--spacing-12);
+  pointer-events: none;
+  align-items: center;
 }
 
-.toast-content {
+.toast-item {
+  width: 100%;
+  max-width: 320px;
+  background: var(--glass-background);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--color-border-glass);
+  border-radius: var(--border-radius-10);
+  box-shadow: var(--shadow-glass);
+  padding: var(--spacing-12);
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: white;
-  padding: 12px 20px;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  min-width: 300px;
-  border: 1px solid #e2e8f0; /* Нейтральная рамка по умолчанию */
-  transition: all 0.3s ease;
+  pointer-events: auto;
+  transition: all var(--transition-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* ИСПРАВЛЕНИЕ 4: Точка трансформации теперь снизу по центру */
+  transform-origin: bottom center;
 }
 
-.icon-circle {
+.toast-item__content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  flex-grow: 1;
+}
+
+.toast-item__icon {
   width: 24px;
   height: 24px;
-  color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
   flex-shrink: 0;
-  transition: all 0.3s ease;
+  color: white;
 }
 
-/* --- СТИЛИ ДЛЯ РАЗНЫХ ТИПОВ --- */
-
-/* 1. Ошибка (Красный) */
-.toast-content.error {
-  border-color: #fee2e2;
-}
-.toast-content.error .icon-circle {
-  background: #ef4444;
+.toast-item__message {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+  margin: 0;
+  flex-grow: 1;
 }
 
-/* 2. Успех (Зеленый) */
-.toast-content.success {
-  border-color: #dcfce7;
+.toast-item__icon--success {
+  background-color: var(--color-success);
 }
-.toast-content.success .icon-circle {
-  background: #22c55e;
+.toast-item__icon--error {
+  background-color: var(--color-error);
 }
-
-/* 3. Предупреждение (Желто-оранжевый) */
-.toast-content.warning {
-  border-color: #fef3c7;
+.toast-item__icon--warning {
+  background-color: var(--color-warning);
 }
-.toast-content.warning .icon-circle {
-  background: #f59e0b;
+.toast-item__icon--info {
+  background-color: var(--color-info);
 }
 
-.message {
-  color: #1e293b;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-/* АНИМАЦИЯ: Выезд снизу вверх */
-.toast-enter-active,
-.toast-leave-active {
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.toast-enter-from {
+/* ИСПРАВЛЕНИЕ 5: Меняем анимацию появления */
+.toast-list-enter-from,
+.toast-list-leave-to {
   opacity: 0;
-  transform: translateX(-50%) translateY(100px);
+  /* Смещение 100% означает, что тост изначально спрятан ниже экрана и «выпрыгивает» вверх */
+  transform: translateY(100%) scale(0.8);
 }
 
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(20px);
+.toast-list-leave-active {
+  position: absolute;
 }
 </style>

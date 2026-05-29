@@ -77,9 +77,9 @@ defineEmits<{
 }
 
 .base-input:disabled {
-  background: #f1f5f9;
-  color: #94a3b8;
-  border-color: #e2e8f0;
+  background: var(--color-background);
+  color: var(--color-secondary);
+  border-color: var(--color-border);
   cursor: not-allowed;
 }
 </style>

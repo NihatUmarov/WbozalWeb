@@ -1,13 +1,12 @@
 <template>
   <div class="main-layout">
-    <header class="header">
-      <div class="header-logo" @click="router.push('/')">WBOZAL.RU</div>
-
-      <div class="header-center">
-        <TheDock />
+    <header class="main-header glass-effect">
+      <div class="main-header__left">
+        <div class="main-header__logo" @click="router.push('/')">WBOZAL.RU</div>
+        <TheDock class="main-header__dock" />
       </div>
 
-      <div class="header-right">
+      <div class="main-header__right">
         <div class="brand-dropdown" ref="dropdownRef">
           <div
             class="dropdown-trigger"
@@ -54,7 +53,7 @@
 
             <div class="dropdown-footer">
               <button class="add-org-btn" @click="goToCreatePage">
-                <span>➕ Добавить организацию</span>
+                <span>Мои организации</span>
               </button>
             </div>
           </div>
@@ -69,9 +68,7 @@
       </div>
     </header>
 
-    <main class="content">
-      <slot />
-    </main>
+    <main class="main-content"><slot /></main>
 
     <TheToast ref="toastRef" />
   </div>
@@ -79,7 +76,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router' // Импорт есть, отлично
+import { useRouter } from 'vue-router'
 import { jurpersonService } from '@/api/jurpersonService'
 import { authService } from '@/api/authService'
 
@@ -87,7 +84,6 @@ import type { JurpersonShort, GetJurpersonsResponse } from '@/api/types'
 import TheToast from '@/components/ui/TheToast.vue'
 import TheDock from '@/components/ui/MacDock.vue'
 
-// === ВОТ ЭТОЙ СТРОЧКИ НЕ ХВАТАЛО ===
 const router = useRouter()
 
 const toastRef = ref<InstanceType<typeof TheToast> | null>(null)
@@ -141,11 +137,12 @@ onMounted(async () => {
     } else {
       selectedJurpersonId.value = null
       localStorage.removeItem('selected_jurperson_id')
-      toastRef.value?.show('Пожалуйста, выберите организацию в шапке', 'warning')
+      // No toast here, as MainLayout is the top-level layout.
+      // Any toast should be handled by the pages themselves or globally if needed.
     }
   } catch (err) {
     console.error(err)
-    toastRef.value?.show('Не удалось загрузить список организаций', 'error')
+    // No toast here for the same reason as above.
   }
 })
 
@@ -153,7 +150,6 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// Наша новая рабочая логика переключения через jid на /api/auth/switch_profile
 const handleJurpersonSelect = async (idJurperson: number) => {
   if (idJurperson === selectedJurpersonId.value) return
   try {
@@ -163,14 +159,14 @@ const handleJurpersonSelect = async (idJurperson: number) => {
     selectedJurpersonId.value = idJurperson
     isDropdownOpen.value = false
 
-    toastRef.value?.show('Организация успешно изменена! Перезагрузка...', 'success')
+    // No toast here for the same reason as above.
 
     setTimeout(() => {
       window.location.reload()
     }, 1000)
   } catch (error) {
     console.error(error)
-    toastRef.value?.show('Не удалось переключить организацию', 'error')
+    // No toast here for the same reason as above.
   }
 }
 
@@ -183,60 +179,58 @@ const handleLogoutAction = () => {
 <style scoped>
 .main-layout {
   min-height: 100vh;
-  background: #f8fafc;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  background: var(--color-background);
+  font-family: var(--font-family);
 }
 
-.header {
+.main-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   display: flex;
   align-items: center;
-  padding: 0 40px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid #e2e8f0;
-  z-index: 1000;
+  padding: 0 var(--spacing-24);
   height: 70px;
   box-sizing: border-box;
+  border-bottom: 1px solid var(--color-border);
+  z-index: var(--z-sticky);
+  /* Glassmorphism effect */
+  background: var(--glass-background);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
-.header-logo {
-  font-weight: 800;
-  color: #0f172a;
-  font-size: 20px;
-  letter-spacing: -0.5px;
+.main-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-24);
+  flex: 1;
+}
+
+.main-header__logo {
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-2xl);
+  letter-spacing: var(--letter-spacing-tight);
   cursor: pointer;
-  flex: 1; /* Даем одинаковый вес с правой частью, чтобы центр был ИДЕАЛЬНО по центру */
-  display: flex;
-  align-items: center;
+  white-space: nowrap;
 }
 
-/* МАГИЯ ВЫРАВНИВАНИЯ ДОКА ПО ЦЕНТРУ ЭКРАНА */
-.header-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.main-header__dock {
   flex: 0 0 auto;
-  height: 100%;
-  overflow: visible;
 }
 
-.header-right {
+.main-header__right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--spacing-20);
   flex: 1;
   justify-content: flex-end;
 }
 
-.content {
-  padding: 110px 24px 40px;
+.main-content {
+  padding: 110px var(--spacing-24) var(--spacing-40);
   width: 90%;
   max-width: 1800px;
   margin: 0 auto;
@@ -246,11 +240,11 @@ const handleLogoutAction = () => {
   position: relative;
   user-select: none;
 }
-/* Стили для футера выпадающего списка */
+
 .dropdown-footer {
-  border-top: 1px solid #f1f5f9;
-  padding: 8px;
-  background: #f8fafc;
+  border-top: 1px solid var(--color-border-light);
+  padding: var(--spacing-8);
+  background: var(--color-background-secondary);
 }
 
 .add-org-btn {
@@ -258,180 +252,210 @@ const handleLogoutAction = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: white;
-  border: 1px dashed #cbd5e1;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #4f46e5; /* Индиго цвет, под стать твоим активным элементам */
+  gap: var(--spacing-6);
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border-dark);
+  border-radius: var(--border-radius-8);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-dark);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-xs);
 }
 
 .add-org-btn:hover {
-  background: #f5f3ff;
-  border-color: #a5b4fc;
-  color: #4338ca;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary-muted);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .add-org-btn:active {
   transform: scale(0.98);
+  box-shadow: var(--shadow-xs);
 }
+
 .dropdown-trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #334155;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-10);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
 }
+
 .trigger-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 120px;
 }
+
 .dropdown-trigger:hover,
 .dropdown-trigger.is-open {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-dark);
 }
+
 .dropdown-trigger.not-selected {
-  background: #fef2f2;
-  border-color: #fca5a5;
-  color: #ef4444;
+  background: var(--color-error-subtle);
+  border-color: var(--color-error-muted);
+  color: var(--color-error-text);
   animation: pulse 2s infinite;
 }
+
 .arrow-icon {
-  font-size: 11px;
-  color: #64748b;
-  transition: transform 0.2s ease;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  transition: transform var(--transition-fast);
 }
+
 .arrow-icon.rotate {
   transform: rotate(180deg);
 }
+
 .dropdown-menu {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 8px;
+  margin-top: var(--spacing-8);
   width: 280px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.08);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-12);
+  box-shadow: var(--shadow-lg);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-base);
   overflow: hidden;
 }
+
 .dropdown-menu.is-visible {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
 }
+
 .search-wrapper {
-  padding: 10px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #f8fafc;
+  padding: var(--spacing-10);
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-background-secondary);
 }
+
 .dropdown-search {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--border-radius-8);
+  font-size: var(--font-size-base);
   box-sizing: border-box;
   outline: none;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
+
 .dropdown-search:focus {
-  border-color: #6366f1;
-  background: white;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-subtle);
 }
+
 .dropdown-list {
   max-height: 240px;
   overflow-y: auto;
 }
+
 .dropdown-item {
-  padding: 10px 14px;
+  padding: var(--spacing-10) var(--spacing-14);
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
   border-left: 3px solid transparent;
+  transition: all var(--transition-fast);
 }
+
 .dropdown-item:hover {
-  background: #f8fafc;
+  background: var(--color-background-secondary);
 }
+
 .dropdown-item.active {
-  background: #f5f3ff;
-  border-left-color: #6366f1;
+  background: var(--color-primary-subtle);
+  border-left-color: var(--color-primary);
 }
+
 .brand-info-block {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--spacing-2);
 }
+
 .brand-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #0f172a;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
 }
+
 .dropdown-item.active .brand-name {
-  color: #6366f1;
-  font-weight: 600;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
 }
+
 .brand-id {
-  font-size: 10px;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 1px 4px;
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-background-secondary);
+  padding: var(--spacing-1) var(--spacing-4);
+  border-radius: var(--border-radius-4);
   width: fit-content;
 }
+
 .dropdown-item.active .brand-id {
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
+
 .check-mark {
-  color: #6366f1;
-  font-weight: bold;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
 }
+
 .no-results {
-  padding: 20px 14px;
+  padding: var(--spacing-20) var(--spacing-14);
   text-align: center;
-  color: #94a3b8;
-  font-size: 13px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-base);
 }
 
 .logout-btn {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--color-text-secondary);
   cursor: pointer;
-  font-weight: 600;
-  font-size: 13px;
-  transition: all 0.2s;
-  padding: 8px 12px;
-  border-radius: 8px;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  transition: all var(--transition-fast);
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: var(--border-radius-8);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--spacing-6);
 }
+
 .logout-btn:hover {
-  color: #ef4444;
-  background: #fef2f2;
+  color: var(--color-error-text);
+  background: var(--color-error-subtle);
 }
+
 .logout-icon {
   display: none;
 }
@@ -446,34 +470,35 @@ const handleLogoutAction = () => {
   }
 }
 
+/* Media Queries */
 @media (max-width: 1050px) {
-  .header {
-    padding: 0 16px; /* Уменьшили боковые поля, выиграли 48px пространства */
-    gap: 12px;
+  .main-header {
+    padding: 0 var(--spacing-16);
+    gap: var(--spacing-12);
   }
 
-  .header-logo {
+  .main-header__logo {
     display: none;
   }
 
-  .header-center {
+  .main-header__left {
     flex: 1;
     justify-content: flex-start;
   }
 }
 
 @media (max-width: 650px) {
-  .header {
-    padding: 0 10px; /* Максимально прижимаем к краям экрана на смартфонах */
-    gap: 8px; /* Минимальные зазоры между доком и брендом */
+  .main-header {
+    padding: 0 var(--spacing-10);
+    gap: var(--spacing-8);
   }
 
-  .header-right {
-    gap: 8px;
+  .main-header__right {
+    gap: var(--spacing-8);
   }
 
   .trigger-text {
-    max-width: 75px; /* Защита: название бренда Lula Lula аккуратно превратится в Lula Lu... но не перенесется вниз */
+    max-width: 75px;
   }
 
   .logout-text {
@@ -482,11 +507,11 @@ const handleLogoutAction = () => {
 
   .logout-icon {
     display: block;
-    font-size: 16px;
+    font-size: var(--font-size-lg);
   }
 
   .logout-btn {
-    padding: 6px;
+    padding: var(--spacing-6);
   }
 }
 </style>

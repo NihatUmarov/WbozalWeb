@@ -3,7 +3,7 @@ import LoginView from '../views/LoginView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import StockDocumentsView from '../views/StockDocumentsView.vue'
 import RemainsList from '../views/RemainsList.vue'
-import CardsView from '../views/CardsView.vue' // <-- 1. ИМПОРТИРУЕМ НАШ ЭКРАН КАРТОЧЕК
+import CardsView from '../views/CardsView.vue'
 import JurpersonSelectView from '../views/JurpersonSelectView.vue'
 
 const routes = [
@@ -51,6 +51,10 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    // Всегда прокручивать к началу страницы
+    return { top: 0, behavior: 'instant' }
+  },
 })
 
 router.beforeEach((to, from, next) => {
@@ -82,7 +86,6 @@ router.beforeEach((to, from, next) => {
   }
 
   if (to.meta.requiresJurperson && isAuthenticated && !hasJurperson) {
-    // redirect user to jurperson selection if token has no jid
     next('/select-jurperson')
     return
   }

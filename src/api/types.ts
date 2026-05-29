@@ -42,7 +42,6 @@ export interface SwitchProfileResponse {
 }
 
 // Jurperson Types
-// Jurperson Types
 export interface JurpersonInfoResponse {
   idJurperson: number
   jurpersonName: string | null
@@ -148,25 +147,17 @@ export interface CardItem {
 }
 
 export interface CreateJurpersonRequest {
+  inn: string
   jurpersonName: string
-  jurpersonFullName?: string | null
-  jurAdress?: string | null
-  postAdress?: string | null
-  rAccount?: string | null
-  kAccount?: string | null
-  bik?: string | null
-  inn?: string | null
-  bank?: string | null
-  okonh?: string | null
-  okpo?: string | null
-  phone?: string | null
-  fax?: string | null
-  kpp?: string | null
-  email?: string | null
-  agreeNum?: string | null
+  jurpersonFullName: string
 }
 
 export interface CreateJurpersonResponse {
   message: string
   idJurperson: number
+}
+
+export interface SuggestByInnResponse {
+  jurpersonName: string
+  jurpersonFullName: string
 }

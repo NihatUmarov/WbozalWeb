@@ -202,8 +202,8 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f1f5f9;
-  padding: 20px;
+  background-color: var(--color-background);
+  padding: var(--spacing-24);
   font-family:
     'Inter',
     system-ui,
@@ -222,10 +222,10 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   width: 100%;
   max-width: 1000px;
   min-height: 600px;
-  background: white;
-  border-radius: 32px;
+  background: var(--color-background);
+  border-radius: var(--border-radius-12);
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 /* SIDEBAR */
@@ -248,13 +248,13 @@ const handleOtpPaste = (e: ClipboardEvent) => {
 }
 
 .logo-text .accent {
-  color: #6366f1;
+  color: var(--color-primary);
 }
 
 .logo-line {
   width: 44px;
   height: 5px;
-  background: #6366f1;
+  background: var(--color-primary);
   margin-top: 8px;
   border-radius: 10px;
 }
@@ -270,7 +270,7 @@ const handleOtpPaste = (e: ClipboardEvent) => {
 .sidebar-info p {
   font-size: 16px;
   line-height: 1.6;
-  color: #94a3b8;
+  color: var(--color-secondary);
 }
 
 .social-links {
@@ -293,8 +293,8 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .social-icon:hover {
-  background: #6366f1;
-  border-color: #6366f1;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   transform: translateY(-2px);
 }
 
@@ -330,8 +330,8 @@ const handleOtpPaste = (e: ClipboardEvent) => {
 .otp-container {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 10px;
-  margin-bottom: 32px;
+  gap: var(--spacing-12);
+  margin-bottom: var(--spacing-32);
 }
 
 .otp-input {
@@ -340,29 +340,29 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   text-align: center;
   font-size: 24px;
   font-weight: 700;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--color-border);
   border-radius: 14px;
-  background: #f8fafc;
-  transition: all 0.2s;
-  color: #0f172a;
+  background: var(--color-background);
+  transition: all var(--transition-fast);
+  color: var(--color-text);
 }
 
 .otp-input:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: var(--color-primary);
   background: white;
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .otp-input.filled {
-  border-color: #cbd5e1;
+  border-color: var(--color-secondary);
   background: white;
 }
 
 .back-link {
   background: none;
   border: none;
-  color: #6366f1;
+  color: var(--color-primary);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -383,19 +383,19 @@ const handleOtpPaste = (e: ClipboardEvent) => {
 .resend-btn {
   background: none;
   border: none;
-  color: #6366f1;
+  color: var(--color-primary);
   font-weight: 600;
   cursor: pointer;
 }
 
 .mb-6 {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-24);
 }
 
 /* ANIMATION */
 .fade-enter-active,
 .fade-leave-active {
-  transition: all 0.3s ease-out;
+  transition: all var(--transition-medium);
 }
 .fade-enter-from {
   opacity: 0;
