@@ -1,62 +1,114 @@
 <template>
-  <div class="jurperson-select-page">
-    <div class="select-container">
-      <div class="header-section">
-        <h1>Выберите организацию</h1>
-        <p>Для продолжения работы необходимо выбрать одну из ваших организаций</p>
+  <MainLayout>
+    <div class="jurperson-select-page-wrapper">
+      <h1 class="top-title">Выбор организации</h1>
+
+      <div v-if="isLoading" class="loading-container">
+        <p>Загрузка списка организаций...</p>
       </div>
 
-      <div v-if="isLoading" class="loading-state">
-        <p>Загрузка организаций...</p>
-      </div>
+      <div v-else class="content-container">
+        <div class="actions-header">
+          <BaseButton
+            type="button"
+            :variant="showCreateForm ? 'secondary' : 'primary'"
+            @click="showCreateForm = !showCreateForm"
+          >
+            {{ showCreateForm ? 'Отменить создание' : '➕ Добавить новую организацию' }}
+          </BaseButton>
+        </div>
 
-      <div v-else-if="jurpersons.length > 0" class="jurpersons-grid">
-        <div
-          v-for="jurperson in jurpersons"
-          :key="jurperson.idJurperson"
-          class="jurperson-card"
-          :class="{
-            selected: selectedId === jurperson.idJurperson,
-            loading: isSelecting === jurperson.idJurperson,
-          }"
-          @click="handleSelectJurperson(jurperson.idJurperson)"
-        >
-          <div class="card-icon">🏢</div>
-          <div class="card-content">
-            <h3>{{ jurperson.jurpersonName }}</h3>
-            <p class="inn-text" v-if="jurperson.inn">ИНН: {{ jurperson.inn }}</p>
-            <p class="inn-text" v-else>ИНН: не указан</p>
+        <BaseCard v-if="showCreateForm" width="700" class="a4-sheet create-card-spacing">
+          <div class="sheet-content">
+            <div class="form-section">
+              <h3 class="section-subtitle">Новая организация</h3>
+
+              <div class="two-columns">
+                <BaseInput
+                  v-model="newOrg.jurpersonName"
+                  label="Наименование Юр. лица:*"
+                  placeholder="ООО 'Компания'"
+                />
+                <BaseInput v-model="newOrg.inn" label="ИНН:" placeholder="1234567890" />
+              </div>
+
+              <div class="two-columns">
+                <BaseInput v-model="newOrg.kpp" label="КПП:" placeholder="123456789" />
+                <BaseInput
+                  v-model="newOrg.email"
+                  label="Email организации:"
+                  placeholder="info@company.ru"
+                  type="email"
+                />
+              </div>
+            </div>
+
+            <div class="footer-actions">
+              <BaseButton :loading="isCreating" @click="handleCreateJurperson">
+                Создать организацию
+              </BaseButton>
+            </div>
           </div>
-          <div v-if="isSelecting === jurperson.idJurperson" class="loading-spinner">
-            <span></span>
-          </div>
+        </BaseCard>
+
+        <h3 class="section-subtitle list-title" v-if="jurpersons.length > 0">
+          Доступные организации
+        </h3>
+
+        <div v-if="jurpersons.length > 0" class="jurpersons-grid">
+          <BaseCard
+            v-for="jurperson in jurpersons"
+            :key="jurperson.idJurperson"
+            class="jurperson-card"
+            :class="{
+              'selected-card': selectedId === jurperson.idJurperson,
+              'loading-card': isSelecting === jurperson.idJurperson,
+            }"
+            @click="handleSelectJurperson(jurperson.idJurperson)"
+          >
+            <div class="card-body-layout">
+              <div class="card-icon">🏢</div>
+              <div class="card-info-text">
+                <h4 class="org-name">{{ jurperson.jurpersonName }}</h4>
+                <p class="inn-text">
+                  {{ jurperson.inn ? `ИНН: ${jurperson.inn}` : 'ИНН: не указан' }}
+                </p>
+              </div>
+
+              <div v-if="selectedId === jurperson.idJurperson" class="active-badge">Активна</div>
+            </div>
+          </BaseCard>
+        </div>
+
+        <div v-else-if="!showCreateForm" class="empty-state">
+          <p>У вас нет доступных организаций</p>
+          <p class="hint">Создайте новую организацию с помощью кнопки выше.</p>
+        </div>
+
+        <!-- Кнопка Выхода -->
+        <div class="logout-wrapper">
+          <hr class="divider" />
+          <button class="custom-logout-btn" @click="handleLogout">Выйти из аккаунта</button>
         </div>
       </div>
-      <div v-else class="empty-state">
-        <p>У вас нет доступных организаций</p>
-        <p class="hint">
-          Пожалуйста, обратитесь к администратору для добавления доступа к организации
-        </p>
-      </div>
-
-      <div class="footer-section">
-        <button class="logout-btn" @click="handleLogout">Выход</button>
-      </div>
     </div>
-
-    <TheToast ref="toastRef" />
-  </div>
+  </MainLayout>
+  <TheToast ref="toastRef" />
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import TheToast from '@/components/ui/TheToast.vue'
-import { jurpersonService } from '@/api/jurpersonService'
-import { authService } from '@/api/authService'
 
-import type { JurpersonShort } from '@/api/types'
+import MainLayout from '@/components/ui/MainLayout.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import TheToast from '@/components/ui/TheToast.vue'
+
+import { jurpersonService } from '@/api/jurpersonService'
+import type { JurpersonShort, CreateJurpersonRequest } from '@/api/types'
 
 const router = useRouter()
 const toastRef = ref<InstanceType<typeof TheToast> | null>(null)
@@ -66,8 +118,19 @@ const selectedId = ref<number | null>(null)
 const isLoading = ref(true)
 const isSelecting = ref<number | null>(null)
 
-onMounted(async () => {
+// Логика создания
+const showCreateForm = ref(false)
+const isCreating = ref(false)
+const newOrg = ref<CreateJurpersonRequest>({
+  jurpersonName: '',
+  inn: '',
+  kpp: '',
+  email: '',
+})
+
+const loadJurpersons = async () => {
   try {
+    isLoading.value = true
     const data = await jurpersonService.getJurpersons()
     jurpersons.value = data.jurpersons
     selectedId.value = data.activeId
@@ -81,21 +144,48 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+onMounted(() => {
+  loadJurpersons()
 })
+
+const handleCreateJurperson = async () => {
+  if (!newOrg.value.jurpersonName.trim()) {
+    toastRef.value?.show('Укажите наименование юридического лица', 'error')
+    return
+  }
+
+  try {
+    isCreating.value = true
+    const res = await jurpersonService.createJurperson(newOrg.value)
+    toastRef.value?.show(res.message || 'Организация успешно создана!', 'success')
+
+    newOrg.value = { jurpersonName: '', inn: '', kpp: '', email: '' }
+    showCreateForm.value = false
+
+    await loadJurpersons()
+  } catch (error: unknown) {
+    let errorMessage = 'Ошибка при создании организации'
+    if (axios.isAxiosError(error) && error.response?.data) {
+      const d = error.response.data as { message?: string; details?: string }
+      errorMessage = d.message || d.details || errorMessage
+    }
+    toastRef.value?.show(errorMessage, 'error')
+  } finally {
+    isCreating.value = false
+  }
+}
 
 const handleSelectJurperson = async (idJurperson: number) => {
   if (isSelecting.value !== null) return
-
   isSelecting.value = idJurperson
 
   try {
-    // ИСПРАВЛЕНО: Вызываем новый метод switchProfile из authService вместо selectJurperson
-    await authService.switchProfile(idJurperson)
-
+    await jurpersonService.selectJurperson(idJurperson)
     selectedId.value = idJurperson
     toastRef.value?.show('Организация успешно выбрана!', 'success')
 
-    // Перенаправляем на главную страницу через 500ms
     setTimeout(() => {
       router.push('/')
     }, 500)
@@ -118,105 +208,155 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
-.jurperson-select-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Синхронизация структуры под стиль твоего профиля */
+.jurperson-select-page-wrapper {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 20px;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  background-color: #f8fafc;
+  min-height: 85vh;
 }
 
-.select-container {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 900px;
+.content-container {
   width: 100%;
-  padding: 40px;
+  max-width: 700px; /* Выравниваем по ширине карточки профиля */
+  display: flex;
+  flex-direction: column;
 }
 
-.header-section {
-  text-align: center;
-  margin-bottom: 40px;
-}
-
-.header-section h1 {
-  font-size: 32px;
+.top-title {
+  font-size: 28px;
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 12px;
-}
-
-.header-section p {
-  font-size: 16px;
-  color: #64748b;
-}
-
-.loading-state {
+  margin-bottom: 30px;
   text-align: center;
-  padding: 60px 20px;
-  color: #64748b;
-  font-size: 16px;
 }
 
-.jurpersons-grid {
+.actions-header {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+}
+
+.create-card-spacing {
+  margin-bottom: 30px;
+}
+
+.section-subtitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4f46e5;
+  margin: 10px 0 15px;
+}
+
+.list-title {
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+.divider {
+  border: 0;
+  height: 1px;
+  background: #e2e8f0;
+  margin: 20px 0;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #64748b;
+}
+
+.a4-sheet {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.sheet-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.two-columns {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
-  margin-bottom: 40px;
+}
+
+.footer-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+/* СЕТКА КАРТОЧЕК ВЫБОРА */
+.jurpersons-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
 }
 
 .jurperson-card {
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 24px;
+  border: 1px solid #e2e8f0 !important;
+  transition: all 0.2s ease-in-out;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  position: relative;
 }
 
-.jurperson-card:hover:not(.loading) {
-  border-color: #667eea;
-  background: #f0f3ff;
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.1);
-  transform: translateY(-4px);
+.jurperson-card:hover {
+  border-color: #4f46e5 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.05) !important;
 }
 
-.jurperson-card.selected {
-  border-color: #667eea;
-  background: #f0f3ff;
-  box-shadow: inset 0 0 0 2px #667eea;
+.selected-card {
+  border-color: #4f46e5 !important;
+  background-color: #f0f3ff !important;
+  box-shadow: inset 0 0 0 1px #4f46e5 !important;
 }
 
-.jurperson-card.loading {
+.loading-card {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.card-icon {
-  font-size: 40px;
-  margin-bottom: 12px;
-}
-
-.card-content {
+.card-body-layout {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  position: relative;
   width: 100%;
 }
 
-.card-content h3 {
-  font-size: 18px;
+.card-icon {
+  font-size: 24px;
+  margin-right: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.card-info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.org-name {
+  font-size: 16px;
   font-weight: 600;
   color: #0f172a;
-  margin: 0 0 8px 0;
-  word-break: break-word;
+  margin: 0;
 }
 
 .inn-text {
@@ -225,66 +365,53 @@ const handleLogout = () => {
   margin: 0;
 }
 
-.loading-spinner {
+.active-badge {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.loading-spinner span {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #667eea;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  right: 15px;
+  background-color: #e0e7ff;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
 }
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 40px 20px;
   color: #64748b;
-}
-
-.empty-state p {
-  margin: 0 0 12px 0;
-  font-size: 16px;
 }
 
 .hint {
   font-size: 14px;
   color: #94a3b8;
+  margin-top: 5px;
 }
 
-.footer-section {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
+.logout-wrapper {
+  margin-top: 30px;
+  text-align: center;
 }
 
-.logout-btn {
-  padding: 10px 24px;
-  background: #ef4444;
-  color: white;
+.custom-logout-btn {
+  background: none;
   border: none;
-  border-radius: 8px;
+  color: #ef4444;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease;
+  padding: 8px 16px;
+  transition: color 0.2s;
 }
 
-.logout-btn:hover {
-  background: #dc2626;
+.custom-logout-btn:hover {
+  color: #b91c1c;
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .two-columns {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -35,10 +35,10 @@ const routes = [
     meta: { requiresAuth: true, requiresJurperson: true },
   },
   {
-    path: '/cards', // <-- 2. ДОБАВЛЯЕМ ПУТЬ ДЛЯ КАРТОЧЕК
+    path: '/cards',
     name: 'CardsList',
     component: CardsView,
-    meta: { requiresAuth: true, requiresJurperson: true }, // Закрываем от неавторизованных
+    meta: { requiresAuth: true, requiresJurperson: true },
   },
   {
     path: '/select-jurperson',

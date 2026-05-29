@@ -51,12 +51,17 @@
 
               <div v-if="filteredJurpersons.length === 0" class="no-results">Ничего не найдено</div>
             </div>
+
+            <div class="dropdown-footer">
+              <button class="add-org-btn" @click="goToCreatePage">
+                <span>➕ Добавить организацию</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="user-menu">
           <button class="logout-btn" @click="handleLogoutAction" title="Выйти из аккаунта">
-            <!-- Иконка вместо текста для разгрузки UI на мобильных -->
             <span class="logout-text">Выход</span>
             <span class="logout-icon">🚪</span>
           </button>
@@ -74,7 +79,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter } from 'vue-router' // Импорт есть, отлично
 import { jurpersonService } from '@/api/jurpersonService'
 import { authService } from '@/api/authService'
 
@@ -82,7 +87,9 @@ import type { JurpersonShort, GetJurpersonsResponse } from '@/api/types'
 import TheToast from '@/components/ui/TheToast.vue'
 import TheDock from '@/components/ui/MacDock.vue'
 
+// === ВОТ ЭТОЙ СТРОЧКИ НЕ ХВАТАЛО ===
 const router = useRouter()
+
 const toastRef = ref<InstanceType<typeof TheToast> | null>(null)
 const dropdownRef = ref<HTMLElement | null>(null)
 
@@ -99,6 +106,11 @@ const handleClickOutside = (event: MouseEvent) => {
   if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
     isDropdownOpen.value = false
   }
+}
+
+const goToCreatePage = () => {
+  isDropdownOpen.value = false
+  router.push('/select-jurperson')
 }
 
 const currentJurpersonName = computed(() => {
@@ -233,6 +245,40 @@ const handleLogoutAction = () => {
 .brand-dropdown {
   position: relative;
   user-select: none;
+}
+/* Стили для футера выпадающего списка */
+.dropdown-footer {
+  border-top: 1px solid #f1f5f9;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.add-org-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: white;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4f46e5; /* Индиго цвет, под стать твоим активным элементам */
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-org-btn:hover {
+  background: #f5f3ff;
+  border-color: #a5b4fc;
+  color: #4338ca;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.add-org-btn:active {
+  transform: scale(0.98);
 }
 .dropdown-trigger {
   display: flex;

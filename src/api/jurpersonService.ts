@@ -5,6 +5,8 @@ import type {
   UpdateJurpersonResponse,
   GetJurpersonsResponse,
   SelectJurpersonResponse,
+  CreateJurpersonRequest,
+  CreateJurpersonResponse,
 } from './types'
 
 export const jurpersonService = {
@@ -34,12 +36,19 @@ export const jurpersonService = {
       { idJurperson },
     )
 
-    // Если токены прилетели — сразу обновляем их в приложении
     if (data.tok && data.rf_tok) {
       localStorage.setItem('access_token', data.tok)
       localStorage.setItem('refresh_token', data.rf_tok)
     }
 
+    return data
+  },
+
+  async createJurperson(payload: CreateJurpersonRequest): Promise<CreateJurpersonResponse> {
+    const { data } = await httpClient.post<CreateJurpersonResponse>(
+      '/api/jurperson/create_jurperson',
+      payload,
+    )
     return data
   },
 }
