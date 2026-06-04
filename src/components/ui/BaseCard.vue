@@ -13,11 +13,12 @@ withDefaults(defineProps<Props>(), { width: 400 })
 
 <style scoped>
 .base-card {
+  position: relative;
+  box-sizing: border-box;
   background: var(--color-surface);
   padding: var(--spacing-24);
   border-radius: var(--border-radius-16);
   width: 100%;
-  /* Premium multi-layer shadow - Vercel/Linear style */
   box-shadow: var(--shadow-card);
   border: 1px solid var(--color-border);
   transition:
@@ -30,7 +31,6 @@ withDefaults(defineProps<Props>(), { width: 400 })
   border-color: var(--color-border-light);
 }
 
-/* Subtle top gradient for depth */
 .base-card::before {
   content: '';
   position: absolute;
@@ -38,7 +38,7 @@ withDefaults(defineProps<Props>(), { width: 400 })
   left: 0;
   right: 0;
   height: 80px;
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.02) 0%, rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(180deg, var(--color-primary-subtle) 0%, transparent 100%);
   pointer-events: none;
   border-radius: var(--border-radius-16) var(--border-radius-16) 0 0;
 }

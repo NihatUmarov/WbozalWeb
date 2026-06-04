@@ -7,13 +7,9 @@
             <h1 class="logo-text">W<span class="accent">b</span>ozal</h1>
             <div class="logo-line"></div>
           </div>
-
           <div class="sidebar-info">
             <h3>Умное управление складом</h3>
-            <p>
-              Эффективность в каждом движении.<br />
-              Можете на нас положиться!
-            </p>
+            <p>Эффективность в каждом движении.<br />Можете на нас положиться!</p>
           </div>
         </div>
         <SocialLinks />
@@ -21,13 +17,11 @@
 
       <div class="auth-form-container">
         <Transition name="fade" mode="out-in">
-          <!-- ШАГ 1: ПОЧТА -->
           <div v-if="step === 1" key="email" class="step-box">
             <div class="form-header">
               <h2>Вход</h2>
               <p>Введите почту для доступа в систему</p>
             </div>
-
             <BaseInput
               v-model="email"
               label="Электронная почта"
@@ -35,7 +29,6 @@
               type="email"
               class="mb-6"
             />
-
             <BaseButton :loading="loading" @click="handleSendOtp"> Продолжить </BaseButton>
           </div>
 
@@ -43,7 +36,6 @@
             <button class="back-link" @click="step = 1">
               <span class="arrow">←</span> Назад к почте
             </button>
-
             <div class="form-header">
               <h2>Код доступа</h2>
               <p>
@@ -51,7 +43,6 @@
               </p>
             </div>
 
-            <!-- СЕТКА OTP ИНПУТОВ -->
             <div class="otp-container">
               <input
                 v-for="(digit, index) in otp"
@@ -73,9 +64,9 @@
             <BaseButton :loading="loading" :disabled="!isOtpComplete" @click="handleLogin">
               Войти в систему
             </BaseButton>
-
             <p class="resend-text">
-              Не получили код? <button class="resend-btn">Отправить повторно</button>
+              Не получили код?
+              <button class="resend-btn" @click="handleSendOtp">Отправить повторно</button>
             </p>
           </div>
         </Transition>
@@ -88,91 +79,54 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
 import TheToast from '@/components/ui/TheToast.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import SocialLinks from '@/components/ui/SocialLinks.vue'
-
 import { authService } from '../api/authService'
+import { useAsync } from '@/composables/useAsync'
 
 const router = useRouter()
 const toastRef = ref<InstanceType<typeof TheToast> | null>(null)
 const step = ref(1)
 const email = ref('')
-const loading = ref(false)
-
-// OTP Логика
 const otp = ref(['', '', '', '', '', ''])
 const otpInputs = ref<HTMLInputElement[]>([])
 
+const { loading, run } = useAsync()
 const isOtpComplete = computed(() => otp.value.every((v) => v.length === 1))
 
-// 1. Отправка OTP на почту
-const handleSendOtp = async () => {
-  if (!email.value) {
-    toastRef.value?.show('Пожалуйста, введите email')
-    return
-  }
+const handleSendOtp = () => {
+  if (!email.value) return toastRef.value?.show('Пожалуйста, введите email', 'warning')
 
-  loading.value = true
-
-  try {
-    await authService.sendOtp(email.value)
-    step.value = 2
-    nextTick(() => otpInputs.value[0]?.focus())
-  } catch (error: unknown) {
-    let errorMessage = 'Ошибка при отправке кода. Попробуйте позже.'
-
-    if (axios.isAxiosError(error) && error.response?.data) {
-      const data = error.response.data as { msg?: string; message?: string }
-      errorMessage = data.msg || data.message || errorMessage
-    }
-
-    toastRef.value?.show(errorMessage)
-  } finally {
-    loading.value = false
-  }
+  run(
+    async () => {
+      await authService.sendOtp(email.value)
+      step.value = 2
+      nextTick(() => otpInputs.value[0]?.focus())
+    },
+    { toast: toastRef.value },
+  )
 }
 
-// 2. Проверка OTP и Вход в систему
-const handleLogin = async () => {
+const handleLogin = () => {
   const finalCode = otp.value.join('')
   if (finalCode.length < 6) return
 
-  loading.value = true
-
-  try {
-    await authService.verifyOtp(email.value, finalCode)
-    toastRef.value?.show('Успешный вход!')
-    router.push('/')
-  } catch (error: unknown) {
-    let errorMessage = 'Неверный код или ошибка сервера'
-
-    if (axios.isAxiosError(error) && error.response?.data) {
-      const data = error.response.data as { msg?: string; message?: string }
-      errorMessage = data.msg || data.message || errorMessage
-    }
-
-    toastRef.value?.show(errorMessage)
-  } finally {
-    loading.value = false
-  }
+  run(
+    async () => {
+      await authService.verifyOtp(email.value, finalCode)
+      toastRef.value?.show('Успешный вход!', 'success')
+      router.push('/')
+    },
+    { toast: toastRef.value },
+  )
 }
 
-// Логика управления инпутами
 const handleOtpInput = (e: Event, index: number) => {
-  const input = e.target as HTMLInputElement
-  const val = input.value
-
-  if (!/^\d*$/.test(val)) {
-    otp.value[index] = ''
-    return
-  }
-
-  if (val && index < 5) {
-    otpInputs.value[index + 1].focus()
-  }
+  const val = (e.target as HTMLInputElement).value
+  if (!/^\d*$/.test(val)) return (otp.value[index] = '')
+  if (val && index < 5) otpInputs.value[index + 1].focus()
 }
 
 const handleOtpKeyDown = (e: KeyboardEvent, index: number) => {
@@ -186,13 +140,10 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   const pastedData = e.clipboardData?.getData('text').slice(0, 6) || ''
   if (!/^\d+$/.test(pastedData)) return
 
-  const digits = pastedData.split('')
-  digits.forEach((d, i) => {
-    if (i < 6) otp.value[i] = d
+  pastedData.split('').forEach((digit, i) => {
+    if (i < 6) otp.value[i] = digit
   })
-
-  const nextIndex = Math.min(digits.length, 5)
-  otpInputs.value[nextIndex].focus()
+  otpInputs.value[Math.min(pastedData.length, 5)].focus()
 }
 </script>
 
@@ -204,31 +155,17 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   min-height: 100vh;
   background-color: var(--color-background);
   padding: var(--spacing-24);
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
 }
-
-.svg-icon {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-
 .auth-wrapper {
   display: flex;
   width: 100%;
   max-width: 1000px;
   min-height: 600px;
-  background: var(--color-background);
   border-radius: var(--border-radius-12);
   overflow: hidden;
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
 }
-
-/* SIDEBAR */
 .auth-sidebar {
   flex: 1;
   background: #0f172a;
@@ -237,30 +174,22 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   flex-direction: column;
   justify-content: space-between;
   color: white;
-  position: relative;
 }
-
 .logo-text {
   font-size: 42px;
   font-weight: 800;
   letter-spacing: -1.5px;
   margin: 0;
 }
-
 .logo-text .accent {
   color: var(--color-primary);
 }
-
 .logo-line {
   width: 44px;
   height: 5px;
   background: var(--color-primary);
   margin-top: 8px;
   border-radius: 10px;
-}
-
-.sidebar-info {
-  margin-top: 60px;
 }
 .sidebar-info h3 {
   font-size: 24px;
@@ -270,35 +199,8 @@ const handleOtpPaste = (e: ClipboardEvent) => {
 .sidebar-info p {
   font-size: 16px;
   line-height: 1.6;
-  color: var(--color-secondary);
+  color: var(--color-text-secondary-dark);
 }
-
-.social-links {
-  display: flex;
-  gap: 12px;
-}
-.social-icon {
-  width: 42px;
-  height: 42px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: 0.3s;
-  text-decoration: none;
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.social-icon:hover {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  transform: translateY(-2px);
-}
-
-/* FORM AREA */
 .auth-form-container {
   flex: 1.3;
   padding: 60px;
@@ -306,12 +208,10 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   align-items: center;
   justify-content: center;
 }
-
 .step-box {
   width: 100%;
   max-width: 400px;
 }
-
 .form-header {
   margin-bottom: 40px;
 }
@@ -325,40 +225,34 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   color: #64748b;
   font-size: 16px;
 }
-
-/* OTP GRID */
 .otp-container {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: var(--spacing-12);
   margin-bottom: var(--spacing-32);
 }
-
 .otp-input {
   width: 100%;
   height: 60px;
   text-align: center;
   font-size: 24px;
   font-weight: 700;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-border-dark);
   border-radius: 14px;
   background: var(--color-background);
   transition: all var(--transition-fast);
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
-
 .otp-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  background: white;
+  background: #fff;
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
-
 .otp-input.filled {
-  border-color: var(--color-secondary);
-  background: white;
+  border-color: #cbd5e1;
+  background: #fff;
 }
-
 .back-link {
   background: none;
   border: none;
@@ -372,14 +266,12 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   gap: 8px;
   padding: 0;
 }
-
 .resend-text {
   text-align: center;
   margin-top: 24px;
   font-size: 14px;
   color: #64748b;
 }
-
 .resend-btn {
   background: none;
   border: none;
@@ -387,12 +279,10 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   font-weight: 600;
   cursor: pointer;
 }
-
 .mb-6 {
   margin-bottom: var(--spacing-24);
 }
 
-/* ANIMATION */
 .fade-enter-active,
 .fade-leave-active {
   transition: all var(--transition-medium);
@@ -411,9 +301,7 @@ const handleOtpPaste = (e: ClipboardEvent) => {
     flex-direction: column;
     max-width: 500px;
   }
-  .auth-sidebar {
-    padding: 40px;
-  }
+  .auth-sidebar,
   .auth-form-container {
     padding: 40px;
   }

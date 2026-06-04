@@ -41,20 +41,15 @@ export interface SwitchProfileResponse {
   role: string
 }
 
-// Jurperson Types
+// Сюда вставляются остальные типы (SendOtpRequest, LoginResponse и т.д. без изменений)
+
 export interface JurpersonInfoResponse {
   idJurperson: number
   jurpersonName: string | null
   jurpersonFullName: string | null
   jurAdress: string | null
   postAdress: string | null
-  rAccount: string | null
-  kAccount: string | null
-  bik: string | null
   inn: string | null
-  bank: string | null
-  okonh: string | null
-  okpo: string | null
   phone: string | null
   fax: string | null
   outIdJurperson: string | null
@@ -71,13 +66,7 @@ export interface UpdateJurpersonRequest {
   jurpersonFullName?: string | null
   jurAdress?: string | null
   postAdress?: string | null
-  rAccount?: string | null
-  kAccount?: string | null
-  bik?: string | null
   inn?: string | null
-  bank?: string | null
-  okonh?: string | null
-  okpo?: string | null
   phone?: string | null
   fax?: string | null
   kpp?: string | null

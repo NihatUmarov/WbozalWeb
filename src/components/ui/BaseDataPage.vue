@@ -163,10 +163,8 @@ const hasHeader = computed(() => props.hasHeader || !!slots['header-actions'])
   background: var(--color-surface) !important;
   color: var(--color-primary) !important;
   font-weight: var(--font-weight-semibold);
-  box-shadow:
-    var(--shadow-sm),
-    0 4px 12px rgba(99, 102, 241, 0.06) !important;
-  border: 1px solid rgba(99, 102, 241, 0.1) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--color-primary-muted) !important;
 }
 
 .data-page__tab-icon {
@@ -174,9 +172,7 @@ const hasHeader = computed(() => props.hasHeader || !!slots['header-actions'])
   margin-right: var(--spacing-8);
 }
 
-.data-page__table-wrapper {
-  /* Container for table, inherits width from parent */
-}
+/* ФИКС: Пустые CSS правила удалены */
 
 @media (max-width: 768px) {
   .data-page {

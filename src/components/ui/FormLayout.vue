@@ -12,14 +12,13 @@
       <BaseCard v-if="showCard" width="700" class="form-layout__card">
         <div class="form-layout__card-content">
           <slot></slot>
+
+          <div v-if="$slots.footer" class="form-layout__footer">
+            <hr class="form-layout__divider" />
+            <slot name="footer"></slot>
+          </div>
         </div>
       </BaseCard>
-      <slot name="default"></slot>
-
-      <div v-if="$slots.footer" class="form-layout__footer">
-        <hr class="form-layout__divider" />
-        <slot name="footer"></slot>
-      </div>
     </div>
   </div>
 </template>
@@ -86,9 +85,12 @@ withDefaults(
   flex-direction: column;
 }
 
+/* Изменено: Убрали text-align: center и добавили ширину, чтобы кнопка растягивалась внутри флекса карточки */
 .form-layout__footer {
-  margin-top: var(--spacing-32);
-  text-align: center;
+  margin-top: var(--spacing-16);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-layout__divider {

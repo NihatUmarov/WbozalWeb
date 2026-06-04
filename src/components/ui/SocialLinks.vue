@@ -19,7 +19,7 @@ import whatsappIcon from '@/components/icons/whatsapp.svg'
 import supportIcon from '@/components/icons/max.svg'
 
 const links = [
-  { title: 'Telegram', url: 'https://t.me/your_link', icon: telegramIcon },
+  { title: 'Telegram', url: 'https://t.me/managerwbozal', icon: telegramIcon },
   { title: 'WhatsApp', url: 'https://wa.me/your_number', icon: whatsappIcon },
   { title: 'Support', url: '#', icon: supportIcon },
 ]

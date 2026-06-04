@@ -18,7 +18,7 @@ export const authService = {
   async verifyOtp(email: string, otp: string): Promise<LoginResponse> {
     const { data } = await httpClient.post<LoginResponse>('/api/auth/email_verify_otp', {
       em: email,
-      otp: otp,
+      otp,
     } as VerifyOtpRequest)
 
     localStorage.setItem('access_token', data.tok)

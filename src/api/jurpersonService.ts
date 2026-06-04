@@ -4,7 +4,6 @@ import type {
   UpdateJurpersonRequest,
   UpdateJurpersonResponse,
   GetJurpersonsResponse,
-  SelectJurpersonResponse,
   CreateJurpersonRequest,
   CreateJurpersonResponse,
   SuggestByInnResponse,
@@ -28,20 +27,6 @@ export const jurpersonService = {
 
   async getJurpersons(): Promise<GetJurpersonsResponse> {
     const { data } = await httpClient.post<GetJurpersonsResponse>('/api/jurperson/get_jurpersons')
-    return data
-  },
-
-  async selectJurperson(idJurperson: number): Promise<SelectJurpersonResponse> {
-    const { data } = await httpClient.post<SelectJurpersonResponse>(
-      '/api/jurperson/select_jurperson',
-      { idJurperson },
-    )
-
-    if (data.tok && data.rf_tok) {
-      localStorage.setItem('access_token', data.tok)
-      localStorage.setItem('refresh_token', data.rf_tok)
-    }
-
     return data
   },
 

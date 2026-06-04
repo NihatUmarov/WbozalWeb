@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import ProfileView from '../views/ProfileView.vue'
-import StockDocumentsView from '../views/StockDocumentsView.vue'
+import StockDocumentsView from '../views/StockDocument/StockDocumentsView.vue'
 import RemainsList from '../views/RemainsList.vue'
 import CardsView from '../views/CardsView.vue'
 import JurpersonSelectView from '../views/JurpersonSelectView.vue'
@@ -51,8 +51,7 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior(to, from, savedPosition) {
-    // Всегда прокручивать к началу страницы
+  scrollBehavior(_to, _from, _savedPosition) {
     return { top: 0, behavior: 'instant' }
   },
 })

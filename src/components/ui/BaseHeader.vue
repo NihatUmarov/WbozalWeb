@@ -1,20 +1,20 @@
 <template>
-  <header class="base-header glass-effect">
-    <div class="base-header__left">
-      <div class="base-header__logo" @click="router.push('/')">WBOZAL.RU</div>
-      <TheDock class="base-header__dock" />
+  <header class="main-header glass-effect">
+    <div class="main-header__left">
+      <div class="main-header__logo" @click="router.push('/')">WBOZAL.RU</div>
+      <TheDock class="main-header__dock" />
     </div>
 
-    <div class="base-header__right">
+    <div class="main-header__right">
       <div class="brand-dropdown" ref="dropdownRef">
         <div
           class="dropdown-trigger"
-          :class="{ 'not-selected': !selectedJurpersonId, 'is-open': isDropdownOpen }"
-          @click="toggleDropdown"
+          :class="{ 'not-selected': !selectedId, 'is-open': isDropdownOpen }"
+          @click="isDropdownOpen = !isDropdownOpen"
         >
-          <span class="folder-icon">💼</span>
+          <Building2 class="dropdown-icon" />
           <span class="trigger-text">{{ currentJurpersonName }}</span>
-          <span class="arrow-icon" :class="{ rotate: isDropdownOpen }">▾</span>
+          <ChevronDown class="arrow-icon" :class="{ rotate: isDropdownOpen }" />
         </div>
 
         <div class="dropdown-menu" :class="{ 'is-visible': isDropdownOpen }">
@@ -32,14 +32,14 @@
             <div
               v-for="jurperson in filteredJurpersons"
               :key="jurperson.idJurperson"
-              :class="['dropdown-item', { active: jurperson.idJurperson === selectedJurpersonId }]"
+              :class="['dropdown-item', { active: jurperson.idJurperson === selectedId }]"
               @click="handleJurpersonSelect(jurperson.idJurperson)"
             >
               <div class="brand-info-block">
                 <span class="brand-name">{{ jurperson.jurpersonName }}</span>
                 <span class="brand-id">ID: {{ jurperson.idJurperson }}</span>
               </div>
-              <span v-if="jurperson.idJurperson === selectedJurpersonId" class="check-mark">✓</span>
+              <Check v-if="jurperson.idJurperson === selectedId" class="check-mark-icon" />
             </div>
 
             <div v-if="filteredJurpersons.length === 0" class="no-results">Ничего не найдено</div>
@@ -47,7 +47,7 @@
 
           <div class="dropdown-footer">
             <button class="add-org-btn" @click="goToCreatePage">
-              <span>➕ Добавить организацию</span>
+              <span>Мои организации</span>
             </button>
           </div>
         </div>
@@ -56,7 +56,7 @@
       <div class="user-menu">
         <button class="logout-btn" @click="handleLogoutAction" title="Выйти из аккаунта">
           <span class="logout-text">Выход</span>
-          <span class="logout-icon">🚪</span>
+          <LogOut class="logout-icon" />
         </button>
       </div>
     </div>
@@ -66,39 +66,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { jurpersonService } from '@/api/jurpersonService'
-import { authService } from '@/api/authService'
-
-import type { JurpersonShort, GetJurpersonsResponse } from '@/api/types'
+import { Building2, ChevronDown, Check, LogOut } from 'lucide-vue-next'
+import { useJurpersons } from '@/composables/useJurpersons'
 import TheDock from '@/components/ui/MacDock.vue'
 
 const router = useRouter()
-
 const dropdownRef = ref<HTMLElement | null>(null)
-
-const jurpersons = ref<JurpersonShort[]>([])
-const selectedJurpersonId = ref<number | null>(null)
 const searchQuery = ref('')
 const isDropdownOpen = ref(false)
 
-const toggleDropdown = () => {
-  isDropdownOpen.value = !isDropdownOpen.value
-}
-
-const handleClickOutside = (event: MouseEvent) => {
-  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
-    isDropdownOpen.value = false
-  }
-}
-
-const goToCreatePage = () => {
-  isDropdownOpen.value = false
-  router.push('/select-jurperson')
-}
+// ФИКС ТУТ: Передаем undefined вместо null, чтобы TypeScript не ругался
+const { jurpersons, selectedId, currentJurperson, load, select } = useJurpersons(undefined)
 
 const currentJurpersonName = computed(() => {
-  const active = jurpersons.value.find((j) => j.idJurperson === selectedJurpersonId.value)
-  return active ? active.jurpersonName : 'Выберите организацию'
+  return currentJurperson.value?.jurpersonName || 'Выберите организацию'
 })
 
 const filteredJurpersons = computed(() => {
@@ -112,59 +93,46 @@ const filteredJurpersons = computed(() => {
   })
 })
 
-onMounted(async () => {
-  document.addEventListener('click', handleClickOutside)
-  try {
-    const data: GetJurpersonsResponse = await jurpersonService.getJurpersons()
-    jurpersons.value = data.jurpersons
-
-    if (data.activeId) {
-      selectedJurpersonId.value = data.activeId
-      localStorage.setItem('selected_jurperson_id', data.activeId.toString())
-    } else {
-      selectedJurpersonId.value = null
-      localStorage.removeItem('selected_jurperson_id')
-      // No toast here, as MainLayout is the top-level layout.
-      // Any toast should be handled by the pages themselves or globally if needed.
-    }
-  } catch (err) {
-    console.error(err)
-    // No toast here for the same reason as above.
-  }
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
-
 const handleJurpersonSelect = async (idJurperson: number) => {
-  if (idJurperson === selectedJurpersonId.value) return
-  try {
-    await authService.switchProfile(idJurperson)
+  if (idJurperson === selectedId.value) return
 
-    localStorage.setItem('selected_jurperson_id', idJurperson.toString())
-    selectedJurpersonId.value = idJurperson
+  const success = await select(idJurperson)
+  if (success) {
     isDropdownOpen.value = false
-
-    // No toast here for the same reason as above.
-
     setTimeout(() => {
       window.location.reload()
-    }, 1000)
-  } catch (error) {
-    console.error(error)
-    // No toast here for the same reason as above.
+    }, 500)
   }
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
+    isDropdownOpen.value = false
+  }
+}
+
+const goToCreatePage = () => {
+  isDropdownOpen.value = false
+  router.push('/select-jurperson')
 }
 
 const handleLogoutAction = () => {
   localStorage.clear()
   window.location.href = '/login'
 }
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+  load()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <style scoped>
-.base-header {
+.main-header {
   position: fixed;
   top: 0;
   left: 0;
@@ -181,14 +149,14 @@ const handleLogoutAction = () => {
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-.base-header__left {
+.main-header__left {
   display: flex;
   align-items: center;
   gap: var(--spacing-24);
   flex: 1;
 }
 
-.base-header__logo {
+.main-header__logo {
   font-weight: var(--font-weight-extrabold);
   color: var(--color-text-primary);
   font-size: var(--font-size-2xl);
@@ -197,11 +165,11 @@ const handleLogoutAction = () => {
   white-space: nowrap;
 }
 
-.base-header__dock {
+.main-header__dock {
   flex: 0 0 auto;
 }
 
-.base-header__right {
+.main-header__right {
   display: flex;
   align-items: center;
   gap: var(--spacing-20);
@@ -265,6 +233,12 @@ const handleLogoutAction = () => {
   transition: all var(--transition-base);
 }
 
+.dropdown-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
 .trigger-text {
   white-space: nowrap;
   overflow: hidden;
@@ -287,9 +261,12 @@ const handleLogoutAction = () => {
 }
 
 .arrow-icon {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-text-tertiary);
+  stroke-width: 2;
   transition: transform var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .arrow-icon.rotate {
@@ -397,16 +374,12 @@ const handleLogoutAction = () => {
   color: var(--color-primary);
 }
 
-.check-mark {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-bold);
-}
-
-.no-results {
-  padding: var(--spacing-20) var(--spacing-14);
-  text-align: center;
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-base);
+.check-mark-icon {
+  width: 16px;
+  height: 16px;
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+  flex-shrink: 0;
 }
 
 .logout-btn {
@@ -430,7 +403,10 @@ const handleLogoutAction = () => {
 }
 
 .logout-icon {
-  display: none;
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
 }
 
 @keyframes pulse {
@@ -443,46 +419,34 @@ const handleLogoutAction = () => {
   }
 }
 
-/* Media Queries */
 @media (max-width: 1050px) {
-  .base-header {
+  .main-header {
     padding: 0 var(--spacing-16);
     gap: var(--spacing-12);
   }
-
-  .base-header__logo {
+  .main-header__logo {
     display: none;
   }
-
-  .base-header__left {
+  .main-header__left {
     flex: 1;
     justify-content: flex-start;
   }
 }
 
 @media (max-width: 650px) {
-  .base-header {
+  .main-header {
     padding: 0 var(--spacing-10);
     gap: var(--spacing-8);
   }
-
-  .base-header__right {
+  .main-header__right {
     gap: var(--spacing-8);
   }
-
   .trigger-text {
     max-width: 75px;
   }
-
   .logout-text {
     display: none;
   }
-
-  .logout-icon {
-    display: block;
-    font-size: var(--font-size-lg);
-  }
-
   .logout-btn {
     padding: var(--spacing-6);
   }

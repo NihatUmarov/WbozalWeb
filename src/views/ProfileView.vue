@@ -1,117 +1,125 @@
 <template>
   <MainLayout>
-    <FormLayout
-      title="Профиль организации"
-      :loading="isPageLoading"
-      loading-text="Загрузка данных организации..."
-    >
-      <template #actions>
-        <div class="form-section">
-          <h3 class="section-subtitle">Основная информация</h3>
-          <div class="grid grid-cols-2 gap-5">
-            <BaseInput
-              v-model="userData.jurpersonName"
-              label="Наименование Юр. лица:"
-              placeholder="ООО 'Компания'"
-            />
-            <BaseInput v-model="userData.inn" label="ИНН:*" placeholder="123456789012" />
+    <div class="w-full max-w-4xl mx-auto py-6 px-4">
+      <FormLayout
+        title="Профиль организации"
+        :loading="loading"
+        loading-text="Загрузка данных организации..."
+      >
+        <div class="flex flex-col gap-10 py-2">
+          <div class="flex flex-col gap-5">
+            <div class="flex items-center gap-2.5 pb-3 border-b border-border mb-2">
+              <Building2 class="w-4 h-4 text-secondary" />
+              <h3 class="text-sm font-bold text-primary uppercase tracking-wide m-0">
+                Юридические данные
+              </h3>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-1 gap-5">
+              <BaseInput
+                v-model="userData.jurpersonName"
+                label="Наименование Юр. лица (для списков)*"
+                placeholder="ООО 'Компания'"
+              />
+              <BaseInput v-model="userData.inn" label="ИНН*" placeholder="123456789012" />
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-1 gap-5">
+              <BaseInput
+                v-model="userData.jurpersonFullName"
+                label="Полное наименование организации*"
+                placeholder="Общество с ограниченной ответственностью..."
+              />
+              <BaseInput v-model="userData.kpp" label="КПП" placeholder="123456789" />
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-1 gap-5">
+              <BaseInput
+                v-model="userData.agreeNum"
+                label="Номер договора со складом"
+                placeholder="ДГ-12345"
+              />
+              <div class="hidden sm:block"></div>
+            </div>
           </div>
-          <div class="grid grid-cols-2 gap-5">
-            <BaseInput
-              v-model="userData.jurpersonFullName"
-              label="Полное наименование:*"
-              placeholder="Общество с ограниченной ответственностью..."
-            />
-            <BaseInput v-model="userData.kpp" label="КПП:" placeholder="123456789" />
+
+          <div class="flex flex-col gap-5">
+            <div class="flex items-center gap-2.5 pb-3 border-b border-border mb-2 mt-4">
+              <Mail class="w-4 h-4 text-secondary" />
+              <h3 class="text-sm font-bold text-primary uppercase tracking-wide m-0">
+                Контакты для связи
+              </h3>
+            </div>
+            <div class="grid grid-cols-3 sm:grid-cols-1 gap-5">
+              <BaseInput
+                v-model="userData.phone"
+                label="Телефон*"
+                placeholder="+7 (999) 000-00-00"
+              />
+              <BaseInput
+                v-model="userData.email"
+                label="Email организации*"
+                placeholder="info@company.ru"
+              />
+              <BaseInput v-model="userData.fax" label="Факс" placeholder="-" />
+            </div>
           </div>
-          <div class="grid grid-cols-2 gap-5">
-            <BaseInput v-model="userData.phone" label="Телефон:" placeholder="+7 (___) ___-__-__" />
-            <BaseInput
-              v-model="userData.email"
-              label="Email организации:"
-              placeholder="info@company.ru"
-            />
+
+          <div class="flex flex-col gap-5">
+            <div class="flex items-center gap-2.5 pb-3 border-b border-border mb-2 mt-4">
+              <MapPin class="w-4 h-4 text-secondary" />
+              <h3 class="text-sm font-bold text-primary uppercase tracking-wide m-0">
+                Адреса регистрации
+              </h3>
+            </div>
+            <div class="flex flex-col gap-5">
+              <BaseInput
+                v-model="userData.jurAdress"
+                label="Юридический адрес"
+                placeholder="101000, г. Москва, ул. Ленина, д. 1"
+              />
+              <BaseInput
+                v-model="userData.postAdress"
+                label="Фактический / Почтовый адрес"
+                placeholder="101000, г. Москва, ул. Ленина, д. 1"
+              />
+            </div>
           </div>
-          <div class="grid grid-cols-2 gap-5">
-            <BaseInput v-model="userData.agreeNum" label="Номер договора:" placeholder="ДГ-12345" />
-            <BaseInput v-model="userData.fax" label="Факс:" placeholder="-" />
-          </div>
-          <BaseInput
-            v-model="userData.jurAdress"
-            label="Юридический адрес:"
-            placeholder="г. Москва..."
-          />
-          <BaseInput
-            v-model="userData.postAdress"
-            label="Почтовый адрес:"
-            placeholder="г. Москва..."
-          />
         </div>
 
-        <hr class="divider" />
-
-        <div class="form-section">
-          <h3 class="section-subtitle">Банковские реквизиты</h3>
-          <div class="grid grid-cols-2 gap-5">
-            <BaseInput v-model="userData.bik" label="БИК:" placeholder="044525225" />
-            <BaseInput
-              v-model="userData.bank"
-              label="Наименование банка:"
-              placeholder="ПАО SBERBANK"
-            />
+        <template #footer>
+          <div class="w-full pt-2 mt-6">
+            <BaseButton :loading="isSaving" class="w-full" @click="saveProfile">
+              Сохранить изменения профиля
+            </BaseButton>
           </div>
-          <div class="grid grid-cols-2 gap-5">
-            <BaseInput
-              v-model="userData.rAccount"
-              label="Расчетный счет:"
-              placeholder="40702810..."
-            />
-            <BaseInput
-              v-model="userData.kAccount"
-              label="Корреспондентский счет:"
-              placeholder="30101810..."
-            />
-          </div>
-        </div>
-      </template>
-
-      <template #footer>
-        <BaseButton :loading="isSaving" @click="saveProfile" class="max-w-xs"
-          >Сохранить изменения</BaseButton
-        >
-      </template>
-    </FormLayout>
+        </template>
+      </FormLayout>
+    </div>
     <TheToast ref="toastRef" />
   </MainLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import axios from 'axios'
+import { Building2, Mail, MapPin } from 'lucide-vue-next'
+import { jurpersonService } from '@/api/jurpersonService'
+import { useAsync } from '@/composables/useAsync'
+import type { UpdateJurpersonRequest } from '@/api/types'
+
 import MainLayout from '@/components/ui/MainLayout.vue'
 import FormLayout from '@/components/ui/FormLayout.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import TheToast from '@/components/ui/TheToast.vue'
-import { jurpersonService } from '@/api/jurpersonService'
-import type { UpdateJurpersonRequest } from '@/api/types'
 
 const toastRef = ref<InstanceType<typeof TheToast> | null>(null)
-const isPageLoading = ref(true)
-const isSaving = ref(false)
+const { loading, run } = useAsync()
+const { loading: isSaving, run: runSave } = useAsync()
 
 const userData = reactive<UpdateJurpersonRequest>({
   jurpersonName: '',
   jurpersonFullName: '',
   jurAdress: '',
   postAdress: '',
-  rAccount: '',
-  kAccount: '',
-  bik: '',
   inn: '',
-  bank: '',
-  okonh: '',
-  okpo: '',
   phone: '',
   fax: '',
   kpp: '',
@@ -119,89 +127,33 @@ const userData = reactive<UpdateJurpersonRequest>({
   agreeNum: '',
 })
 
-const loadBrandData = async () => {
-  try {
-    isPageLoading.value = true
-    const jurpersonsData = await jurpersonService.getJurpersons()
-    const selectedId = jurpersonsData.activeId || jurpersonsData.jurpersons?.[0]?.idJurperson
-    if (selectedId) localStorage.setItem('selected_jurperson_id', selectedId.toString())
+const loadProfileData = () => {
+  run(
+    async () => {
+      const jurData = await jurpersonService.getJurpersons()
+      const activeId = jurData.activeId || jurData.jurpersons?.[0]?.idJurperson
+      if (activeId) localStorage.setItem('selected_jurperson_id', activeId.toString())
 
-    const data = await jurpersonService.getJurperson()
-    Object.assign(userData, {
-      jurpersonName: data.jurpersonName,
-      jurpersonFullName: data.jurpersonFullName,
-      jurAdress: data.jurAdress,
-      postAdress: data.postAdress,
-      rAccount: data.rAccount,
-      kAccount: data.kAccount,
-      bik: data.bik,
-      inn: data.inn,
-      bank: data.bank,
-      okonh: data.okonh,
-      okpo: data.okpo,
-      phone: data.phone,
-      fax: data.fax,
-      kpp: data.kpp,
-      email: data.email,
-      agreeNum: data.agreeNum,
-    })
-    if (!userData.inn)
-      toastRef.value?.show('Рекомендуем заполнить ИНН для корректной работы', 'warning')
-  } catch (error: unknown) {
-    let msg = 'Не удалось загрузить данные профиля.'
-    if (axios.isAxiosError(error) && error.response?.data) {
-      const d = error.response.data as { message?: string }
-      if (d.message) msg = d.message
-    }
-    toastRef.value?.show(msg, 'error')
-  } finally {
-    isPageLoading.value = false
-  }
+      const data = await jurpersonService.getJurperson()
+      Object.assign(userData, data)
+
+      if (!userData.inn) {
+        toastRef.value?.show('Рекомендуем заполнить ИНН для корректной работы', 'warning')
+      }
+    },
+    { toast: toastRef.value },
+  )
 }
 
-onMounted(loadBrandData)
-
-const saveProfile = async () => {
-  isSaving.value = true
-  try {
-    const payload: UpdateJurpersonRequest = { ...userData }
-    const response = await jurpersonService.updateJurperson(payload)
-    toastRef.value?.show(response.message || 'Данные сохранены успешно!', 'success')
-  } catch (error: unknown) {
-    let errorMessage = 'Ошибка сохранения данных'
-    if (axios.isAxiosError(error) && error.response?.data) {
-      const data = error.response.data as { message?: string }
-      if (data.message) errorMessage = data.message
-    }
-    toastRef.value?.show(errorMessage, 'error')
-  } finally {
-    isSaving.value = false
-  }
+const saveProfile = () => {
+  runSave(
+    async () => {
+      const res = await jurpersonService.updateJurperson({ ...userData })
+      toastRef.value?.show(res.message || 'Данные сохранены успешно!', 'success')
+    },
+    { toast: toastRef.value },
+  )
 }
+
+onMounted(loadProfileData)
 </script>
-
-<style scoped>
-.form-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
-  margin-bottom: var(--spacing-20);
-}
-.section-subtitle {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-primary);
-  margin: var(--spacing-10) 0 var(--spacing-5);
-}
-.divider {
-  border: 0;
-  height: 1px;
-  background: var(--color-border);
-  margin: var(--spacing-15) 0;
-}
-@media (max-width: 640px) {
-  .grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-</style>

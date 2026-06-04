@@ -35,50 +35,50 @@ defineEmits<{
 
 .base-label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 6px;
-  margin-left: 4px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-6);
+  margin-left: var(--spacing-4);
 }
 
 .input-wrapper {
   position: relative;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .base-input {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #0f172a;
-  font-size: 15px;
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--border-radius-12);
+  border: 1px solid var(--color-border-dark);
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
   font-family: inherit;
   box-sizing: border-box;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-fast) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .base-input::placeholder {
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
 }
 
 .base-input:hover:not(:disabled) {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
+  border-color: var(--color-text-secondary);
+  background: var(--color-surface);
 }
 
 .base-input:focus:not(:disabled) {
   outline: none;
-  background: #ffffff;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-subtle);
 }
 
 .base-input:disabled {
   background: var(--color-background);
-  color: var(--color-secondary);
+  color: var(--color-text-tertiary);
   border-color: var(--color-border);
   cursor: not-allowed;
 }
