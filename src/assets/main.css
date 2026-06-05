@@ -69,6 +69,50 @@
   }
 }
 
+/* --- ДОПОЛНЕНИЕ ДЛЯ ЕДИНООБРАЗИЯ ТАБЛИЦ --- */
+.text-primary {
+  color: var(--color-text-primary);
+}
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+.bg-secondary {
+  background-color: var(--color-background-secondary);
+}
+.border-dark {
+  border: 1px solid var(--color-border-dark);
+}
+.border-success {
+  border: 1px solid rgba(34, 197, 94, 0.15);
+}
+.border-warning {
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+.border-error {
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+.rounded-6 {
+  border-radius: var(--radius-6);
+}
+.font-semibold {
+  font-weight: 600;
+}
+.font-bold {
+  font-weight: 700;
+}
+
+.px-6 {
+  padding-left: var(--spacing-6);
+  padding-right: var(--spacing-6);
+}
+.py-4 {
+  padding-top: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+}
+.mt-4 {
+  margin-top: var(--spacing-4);
+}
+
 /* --- СБРОС И СЕМАНТИКА --- */
 *,
 *::before,

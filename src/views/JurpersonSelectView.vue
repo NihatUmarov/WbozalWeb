@@ -35,7 +35,7 @@
                   <input
                     v-model="newOrg.inn"
                     type="text"
-                    placeholder="Введите от 10 до 16 цифр"
+                    placeholder="Введите от 10 до 16 символов (буквы или цифры)"
                     class="input"
                     @input="handleInnInput"
                   />
@@ -154,9 +154,11 @@ const { loading, run } = useAsync()
 const { loading: isCreating, run: runCreate } = useAsync()
 
 const newOrg = ref({ inn: '', jurpersonName: '', jurpersonFullName: '' })
+
+// ТЕПЕРЬ ТУТ ПРОВЕРЯЕТСЯ ТОЛЬКО ДЛИНА СТРОКИ (ОТ 10 ДО 16 СИМВОЛОВ), ЛЮБЫЕ ЗНАКИ РАЗРЕШЕНЫ
 const isValidInn = computed(() => {
   const len = newOrg.value.inn.trim().length
-  return len >= 10 && len <= 16
+  return len >= 10 && len <= 20
 })
 
 const toggleCreateForm = () => {
@@ -177,6 +179,7 @@ const handleSuggestByInn = () => {
   if (!isValidInn.value) return
   run(
     async () => {
+      // Отправляем ИНН как есть, метод .trim() уберет случайные пробелы по краям
       const data = await jurpersonService.suggestByInn(newOrg.value.inn.trim())
       newOrg.value.jurpersonName = data.jurpersonName || ''
       newOrg.value.jurpersonFullName = data.jurpersonFullName || ''
@@ -199,6 +202,7 @@ const handleCreateJurperson = () => {
 
   runCreate(
     async () => {
+      // ИНН сохраняется в базу с буквами
       const res = await jurpersonService.createJurperson({
         inn: newOrg.value.inn.trim(),
         jurpersonName: newOrg.value.jurpersonName.trim(),
@@ -230,7 +234,6 @@ onMounted(load)
 </script>
 
 <style scoped>
-/* Стиль карточек организаций - строго на базе токенов main.css */
 .org-card {
   cursor: pointer;
   transition: all var(--transition-base);
