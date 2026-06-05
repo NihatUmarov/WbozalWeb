@@ -1,17 +1,17 @@
 <template>
-  <div class="table-card" :style="{ maxHeight: items.length > 0 ? maxHeight : 'auto' }">
-    <div v-if="loading" class="state-container">
-      <div class="spinner"></div>
-      <p>{{ loadingText }}</p>
+  <div class="table-container" :style="{ maxHeight: items.length > 0 ? maxHeight : 'auto' }">
+    <div v-if="loading" class="table-state text-muted">
+      <div class="table-spinner"></div>
+      <p class="text-sm font-medium">{{ loadingText }}</p>
     </div>
 
-    <div v-else-if="items.length === 0" class="state-container">
+    <div v-else-if="items.length === 0" class="table-state text-muted">
       <span class="empty-icon">{{ emptyIcon }}</span>
-      <p>{{ emptyText }}</p>
+      <p class="text-sm font-medium">{{ emptyText }}</p>
     </div>
 
     <div v-else class="table-responsive">
-      <table class="modern-table">
+      <table class="minimal-table">
         <thead>
           <tr>
             <th
@@ -22,8 +22,8 @@
               @click="col.sortable && handleSort(col.key)"
             >
               <div class="th-content">
-                <span class="th-label">{{ col.label }}</span>
-                <span v-if="col.sortable" class="sort-icon">
+                <span class="truncate">{{ col.label }}</span>
+                <span v-if="col.sortable" class="sort-arrows">
                   <span
                     :class="{
                       active: currentSort.key === String(col.key) && currentSort.order === 'asc',
@@ -39,12 +39,12 @@
                 </span>
               </div>
 
-              <div v-if="col.filterable" class="filter-wrapper" @click.stop>
+              <div v-if="col.filterable" class="filter-box" @click.stop>
                 <input
                   type="text"
-                  :placeholder="`Поиск...`"
+                  placeholder="Поиск..."
                   v-model="filters[String(col.key)]"
-                  class="table-filter-input"
+                  class="input table-input"
                 />
               </div>
             </th>
@@ -53,7 +53,7 @@
         <tbody>
           <tr
             v-for="(item, index) in filteredAndSortedItems"
-            :key="item.id || index"
+            :key="typeof item.id === 'string' || typeof item.id === 'number' ? item.id : index"
             :class="rowClass ? rowClass(item) : ''"
           >
             <td v-for="col in columns" :key="String(col.key)">
@@ -66,10 +66,34 @@
       </table>
     </div>
   </div>
+
+  <Teleport to="body">
+    <div v-if="showExcelModal" class="modal-overlay excel-overlay" @click="showExcelModal = false">
+      <div class="excel-modal-content" @click.stop>
+        <div class="excel-modal-header">
+          <h3>Выгрузка данных в Excel</h3>
+        </div>
+        <p class="excel-modal-text">
+          В таблице сейчас применены фильтры поиска. Выгрузить данные с учетом фильтрации или
+          сохранить весь список целиком?
+        </p>
+        <div class="excel-modal-actions">
+          <button @click="confirmExport(true)" class="btn btn-primary w-full">
+            Применить фильтры ({{ filteredAndSortedItems.length }} стр.)
+          </button>
+          <button @click="confirmExport(false)" class="btn btn-secondary w-full">
+            Выгрузить всё без фильтров ({{ items.length }} стр.)
+          </button>
+          <button @click="showExcelModal = false" class="excel-btn-cancel">Отмена</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
-<script setup lang="ts" generic="T extends Record<string, any>">
+<script setup lang="ts" generic="T extends Record<string, unknown>">
 import { ref, computed } from 'vue'
+import * as XLSX from 'xlsx'
 
 export interface TableColumn<T> {
   key: keyof T
@@ -78,6 +102,7 @@ export interface TableColumn<T> {
   filterable?: boolean
   width?: string
   minWidth?: string
+  exportFormatter?: (value: unknown, item: T) => string | number
 }
 
 const props = withDefaults(
@@ -102,6 +127,8 @@ const props = withDefaults(
 
 const currentSort = ref<{ key: string | null; order: 'asc' | 'desc' }>({ key: null, order: 'asc' })
 const filters = ref<Record<string, string>>({})
+const showExcelModal = ref(false)
+let currentExportFileName = 'export_data'
 
 const handleSort = (key: keyof T) => {
   const stringKey = String(key)
@@ -115,41 +142,82 @@ const handleSort = (key: keyof T) => {
 
 const filteredAndSortedItems = computed(() => {
   let result = [...props.items]
-
   Object.keys(filters.value).forEach((key) => {
     const searchTerm = filters.value[key]?.toLowerCase().trim()
     if (searchTerm) {
-      result = result.filter((item) => {
-        const value = item[key as keyof T]
-        return String(value ?? '')
+      result = result.filter((item) =>
+        String(item[key as keyof T] ?? '')
           .toLowerCase()
-          .includes(searchTerm)
-      })
+          .includes(searchTerm),
+      )
     }
   })
-
   const { key, order } = currentSort.value
   if (key) {
     result.sort((a, b) => {
-      let valA = a[key as keyof T]
-      let valB = b[key as keyof T]
-      if (typeof valA === 'string') valA = valA.toLowerCase()
-      if (typeof valB === 'string') valB = valB.toLowerCase()
-      if (valA < valB) return order === 'asc' ? -1 : 1
-      if (valA > valB) return order === 'asc' ? 1 : -1
-      return 0
+      const valA = String(a[key as keyof T] ?? '').toLowerCase()
+      const valB = String(b[key as keyof T] ?? '').toLowerCase()
+      return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
     })
   }
-
   return result
 })
+
+const hasActiveFilters = computed(() => {
+  return Object.values(filters.value).some((val) => val && val.trim() !== '')
+})
+
+const triggerExcelExport = (fileName: string) => {
+  currentExportFileName = fileName
+  if (hasActiveFilters.value) {
+    showExcelModal.value = true
+  } else {
+    generateExcel(false)
+  }
+}
+
+const confirmExport = (useFilters: boolean) => {
+  showExcelModal.value = false
+  generateExcel(useFilters)
+}
+
+const generateExcel = (useFilters: boolean) => {
+  const dataToExport = useFilters ? filteredAndSortedItems.value : props.items
+  if (!dataToExport.length) return alert('Нет данных для выгрузки')
+
+  const excelRows = dataToExport.map((item: T) => {
+    const row: Record<string, string | number | boolean> = {}
+    props.columns.forEach((col) => {
+      const rawValue = item[col.key]
+      if (col.exportFormatter) {
+        row[col.label] = col.exportFormatter(rawValue, item)
+      } else if (typeof rawValue === 'boolean') {
+        row[col.label] = rawValue ? 'Да' : 'Нет'
+      } else if (typeof rawValue === 'string' || typeof rawValue === 'number') {
+        row[col.label] = rawValue
+      } else {
+        row[col.label] = (rawValue as string) ?? '—'
+      }
+    })
+    return row
+  })
+
+  const worksheet = XLSX.utils.json_to_sheet(excelRows)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Лист 1')
+  worksheet['!cols'] = props.columns.map((col) => ({ wch: Math.max(col.label.length + 4, 14) }))
+
+  const dateStr = new Date().toISOString().slice(0, 10)
+  XLSX.writeFile(workbook, `${currentExportFileName}_${dateStr}.xlsx`)
+}
+
+defineExpose({ hasActiveFilters, filteredAndSortedItems, triggerExcelExport })
 </script>
 
 <style scoped>
-/* Внешняя карточка */
-.table-card {
+.table-container {
   background: var(--color-surface);
-  border-radius: var(--border-radius-12);
+  border-radius: var(--radius-12);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
   width: 100%;
@@ -157,80 +225,39 @@ const filteredAndSortedItems = computed(() => {
   flex-direction: column;
   overflow: hidden;
 }
-
-/* Контейнер таблицы */
 .table-responsive {
   width: 100%;
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: auto; /* Включаем вертикальный скролл */
-  -webkit-overflow-scrolling: touch;
-
-  /* Настройки скролла для Firefox */
+  overflow: auto;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
 }
-
-/* ИСПРАВЛЕНО: Кастомный аккуратный ползунок для Chrome, Safari, Edge */
-.table-responsive::-webkit-scrollbar {
-  width: 6px; /* Тонкий скроллбар, чтобы не мозолил глаза */
-  height: 6px;
-}
-
-.table-responsive::-webkit-scrollbar-track {
-  background: transparent; /* Полностью прозрачный трек */
-}
-
-.table-responsive::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1; /* Приятный серый цвет бегунка */
-  border-radius: 3px;
-}
-
-.table-responsive::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8; /* Чуть темнее при наведении */
-}
-
-.modern-table {
+.minimal-table {
   width: 100%;
-  min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  text-align: left;
-  font-size: var(--font-size-base);
+  font-size: 13px;
 }
-
-/* ШАПКА: ЖЕСТКО ФИКСИРУЕМ И ЗАЛИВАЕМ СПЛОШНЫМ ЦВЕТОМ */
-.modern-table th {
+.minimal-table th {
   position: sticky;
   top: 0;
-  z-index: 100 !important; /* Поверх всего контента */
-  background-color: #f4f5f7 !important;
+  z-index: 10;
+  background: var(--color-background-secondary);
   padding: var(--spacing-8) var(--spacing-16);
   color: var(--color-text-secondary);
-  font-weight: var(--font-weight-semibold);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.05),
-    inset 0 -1px 0 var(--color-border-dark);
-  white-space: nowrap;
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border-dark);
+  text-align: left;
 }
-
-/* ЯЧЕЙКИ: ТОЖЕ НЕПРОЗРАЧНЫЕ */
-.modern-table td {
-  padding: var(--spacing-6) var(--spacing-16);
+.minimal-table td {
+  padding: var(--spacing-8) var(--spacing-16);
   color: var(--color-text-primary);
-  background-color: #ffffff !important;
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-dark);
   vertical-align: middle;
-  font-variant-numeric: tabular-nums;
 }
-
-.modern-table tr:last-child td {
+.minimal-table tr:last-child td {
   border-bottom: none;
 }
-
-/* ХОВЕР: МЕНЯЕМ ЦВЕТ ФОНА, А НЕ ПРОЗРАЧНОСТЬ */
-.modern-table tbody tr:hover td {
-  background-color: #f9fafb !important;
+.minimal-table tbody tr:hover td {
+  background: var(--color-background-secondary);
 }
 
 .th-content {
@@ -239,80 +266,135 @@ const filteredAndSortedItems = computed(() => {
   justify-content: space-between;
   gap: var(--spacing-8);
 }
-
-.th-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .sortable {
   cursor: pointer;
   user-select: none;
 }
-
-.sort-icon {
+.sort-arrows {
   display: inline-flex;
   flex-direction: column;
-  font-size: var(--font-size-xs);
+  font-size: 9px;
   color: var(--color-text-tertiary);
   line-height: 1;
 }
-
-.sort-icon .active {
+.sort-arrows .active {
   color: var(--color-primary);
 }
-
-.filter-wrapper {
+.filter-box {
   margin-top: var(--spacing-4);
 }
-
-.table-filter-input {
-  width: 100%;
-  box-sizing: border-box;
+.table-input {
   padding: var(--spacing-4) var(--spacing-8);
-  font-size: var(--font-size-sm);
-  border: 1px solid var(--color-border-dark);
-  border-radius: var(--border-radius-6);
-  font-weight: var(--font-weight-normal);
-  color: var(--color-text-primary);
-  background-color: #ffffff !important;
-  transition: all var(--transition-fast) ease;
+  font-size: 12px;
+  border-radius: var(--radius-6);
 }
 
-.table-filter-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-subtle);
-}
-
-.state-container {
+.table-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-48) var(--spacing-20);
-  color: var(--color-text-secondary);
-  background-color: #ffffff;
+  padding: var(--spacing-40) var(--spacing-20);
+  gap: var(--spacing-12);
 }
-
 .empty-icon {
-  font-size: var(--font-size-4xl);
-  margin-bottom: var(--spacing-12);
+  font-size: 32px;
 }
-
-.spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--color-border);
+.table-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border-dark);
   border-top-color: var(--color-primary);
-  border-radius: var(--border-radius-full);
-  animation: spin 0.8s linear infinite;
-  margin-bottom: var(--spacing-12);
+  border-radius: var(--radius-full);
+  animation: table-spin 0.8s linear infinite;
 }
-
-@keyframes spin {
+@keyframes table-spin {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Навесили абсолютный z-index, чтобы модалка встала поверх шторок и оверлеев */
+.excel-overlay {
+  z-index: 100000 !important;
+}
+
+.excel-modal-content {
+  background: var(--color-surface);
+  padding: var(--spacing-24);
+  border-radius: var(--radius-12);
+  box-shadow: var(--shadow-md);
+  max-width: 400px;
+  width: 100%;
+  border: 1px solid var(--color-border);
+}
+.excel-modal-text {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin: var(--spacing-12) 0 var(--spacing-20);
+  line-height: 1.5;
+}
+.excel-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.excel-btn-cancel {
+  background: transparent;
+  border: none;
+  padding: 10px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.excel-btn-cancel:hover {
+  color: var(--color-text-primary);
+}
+/* Стили для заднего фона модального окна (Overlay) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* Полупрозрачный черный фон */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; /* Чтобы модалка была поверх WMS интерфейса и ТСД таблиц */
+}
+
+/* Корректировка для контента, чтобы он не сливался */
+.excel-modal-content {
+  background: var(--color-surface);
+  padding: var(--spacing-24);
+  border-radius: var(--radius-12);
+  box-shadow: var(--shadow-md);
+  max-width: 400px;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  z-index: 10000;
+}
+:global(.modal-overlay) {
+  position: fixed;
+  inset: 0; /* Заменяет top:0; left:0; width:100vw; height:100vh; */
+  background-color: rgba(15, 23, 42, 0.4); /* Стильный темно-синий с прозрачностью */
+  backdrop-filter: blur(8px); /* Если переменная --glass-blur не подтянется, жесткий блюр спасет */
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+:global(.excel-modal-content) {
+  background: var(--color-surface);
+  padding: var(--spacing-24);
+  border-radius: var(--radius-12);
+  box-shadow: var(--shadow-md);
+  max-width: 400px;
+  width: 100%;
+  border: 1px solid var(--color-border);
 }
 </style>

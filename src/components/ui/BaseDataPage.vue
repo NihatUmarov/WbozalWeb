@@ -1,33 +1,41 @@
 <template>
-  <div class="data-page">
-    <!-- Header Section -->
-    <div class="data-page__header" v-if="hasHeader">
-      <div class="data-page__header-content">
-        <h1 class="data-page__title">{{ title }}</h1>
+  <div class="data-page flex flex-col gap-20">
+    <div class="card page-header" v-if="hasHeader">
+      <div class="flex items-center justify-between flex-wrap gap-12">
+        <h1>{{ title }}</h1>
 
-        <!-- Slot for custom header actions (toggles, buttons, etc.) -->
-        <div class="data-page__header-actions">
+        <div class="flex items-center gap-12">
+          <button
+            v-if="showExcelExport"
+            type="button"
+            class="btn btn-secondary flex items-center gap-8"
+            :disabled="loading || !items.length"
+            @click="handleExportClick"
+          >
+            <img src="@/components/icons/office-exel.svg" alt="Excel" class="excel-icon-img" />
+            <span>Экспорт</span>
+          </button>
+
           <slot name="header-actions"></slot>
         </div>
       </div>
     </div>
 
-    <!-- Tabs Section -->
-    <div class="data-page__tabs" v-if="tabs && tabs.length > 0">
-      <BaseButton
+    <div class="page-tabs" v-if="tabs && tabs.length > 0">
+      <button
         v-for="tab in tabs"
         :key="tab.value"
-        :class="['data-page__tab', { 'data-page__tab--active': currentTab === tab.value }]"
+        :class="['tab-btn', { 'tab-btn--active': currentTab === tab.value }]"
         @click="$emit('tabChange', tab.value)"
       >
-        <span class="data-page__tab-icon">{{ tab.icon }}</span>
-        <span class="data-page__tab-label">{{ tab.label }}</span>
-      </BaseButton>
+        <span v-if="tab.icon" class="tab-icon">{{ tab.icon }}</span>
+        <span>{{ tab.label }}</span>
+      </button>
     </div>
 
-    <!-- Table Section -->
-    <div class="data-page__table-wrapper">
+    <div class="w-full">
       <BaseTable
+        ref="tableRef"
         :items="items"
         :columns="columns"
         :loading="loading"
@@ -37,7 +45,6 @@
         :max-height="tableMaxHeight"
         :row-class="rowClass"
       >
-        <!-- Forward all cell slots -->
         <template v-for="(_, name) in $slots" :key="name" v-slot:[name]="slotData">
           <slot :name="name" v-bind="slotData"></slot>
         </template>
@@ -46,10 +53,9 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="T extends Record<string, any>">
-import { computed } from 'vue'
+<script setup lang="ts" generic="T extends Record<string, unknown>">
+import { ref, computed } from 'vue'
 import BaseTable, { type TableColumn } from './BaseTable.vue'
-import BaseButton from './BaseButton.vue'
 
 export interface TabItem {
   label: string
@@ -71,6 +77,7 @@ const props = withDefaults(
     tableMaxHeight?: string
     rowClass?: (item: T) => string
     hasHeader?: boolean
+    showExcelExport?: boolean
   }>(),
   {
     loading: false,
@@ -78,6 +85,7 @@ const props = withDefaults(
     emptyText: 'Данные не найдены',
     emptyIcon: '📂',
     hasHeader: true,
+    showExcelExport: true,
   },
 )
 
@@ -85,118 +93,87 @@ defineEmits<{
   tabChange: [value: string | number]
 }>()
 
-// Check if header actions slot is provided
+// Описываем форму экспортируемых методов таблицы
+interface TableInstance {
+  triggerExcelExport: (fileName: string) => void
+  filteredAndSortedItems: unknown[]
+  hasActiveFilters: boolean
+}
+
+// Переменная для хранения ссылки на дочерний компонент таблицы
+const tableRef = ref<TableInstance | null>(null)
+
+// Локальный метод для обработки клика
+const handleExportClick = () => {
+  console.log('Клик по кнопке экспорт зафиксирован!')
+  console.log('Текущий инстанс таблицы в ref:', tableRef.value)
+
+  if (tableRef.value && typeof tableRef.value.triggerExcelExport === 'function') {
+    tableRef.value.triggerExcelExport(props.title)
+  } else {
+    console.error(
+      'Критическая ошибка: метод triggerExcelExport не найден в tableRef! Проверь defineExpose в BaseTable.vue',
+    )
+    // Если по какой-то причине реф не связался, выведи нативный алерт, чтобы понять это сразу в браузере:
+    alert('Ошибка инициализации таблицы. Открой консоль разработчика (F12)')
+  }
+}
+
 const slots = defineSlots()
 const hasHeader = computed(() => props.hasHeader || !!slots['header-actions'])
 </script>
 
 <style scoped>
 .data-page {
-  padding: var(--spacing-24);
-  padding-bottom: var(--spacing-64);
-  min-height: 100vh;
-  background: var(--color-background);
+  width: 100%;
+}
+.page-header {
+  padding: var(--spacing-16) var(--spacing-24);
 }
 
-.data-page__header {
-  background: var(--color-surface);
-  border-radius: var(--border-radius-20);
-  padding: var(--spacing-24);
-  margin-bottom: var(--spacing-24);
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--color-border);
-  transition: box-shadow var(--transition-base);
+.excel-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  margin-right: 6px;
 }
 
-.data-page__header:hover {
-  box-shadow: var(--shadow-card-hover);
-}
-
-.data-page__header-content {
+.page-tabs {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.data-page__title {
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin: 0;
-  letter-spacing: var(--letter-spacing-tight);
-}
-
-.data-page__header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-12);
-}
-
-.data-page__tabs {
-  display: flex;
-  gap: var(--spacing-6);
-  margin-bottom: var(--spacing-24);
+  gap: var(--spacing-16);
+  border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: var(--spacing-4);
 }
-
-.data-page__tab {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  width: auto !important;
-  padding: var(--spacing-10) var(--spacing-18) !important;
-  font-weight: var(--font-weight-medium);
+.tab-btn {
+  background: transparent;
+  border: none;
+  padding: var(--spacing-12) var(--spacing-4);
+  font-size: 13px;
+  font-weight: 500;
   color: var(--color-text-secondary);
-  border-radius: var(--border-radius-8);
-  transition: all var(--transition-base);
-  flex-shrink: 0;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  position: relative;
+  white-space: nowrap;
 }
-
-.data-page__tab:hover {
+.tab-btn:hover {
   color: var(--color-text-primary);
-  background: var(--color-background-secondary) !important;
 }
-
-.data-page__tab--active {
-  background: var(--color-surface) !important;
-  color: var(--color-primary) !important;
-  font-weight: var(--font-weight-semibold);
-  box-shadow: var(--shadow-md) !important;
-  border: 1px solid var(--color-primary-muted) !important;
+.tab-btn--active {
+  color: var(--color-primary);
+  font-weight: 600;
 }
-
-.data-page__tab-icon {
-  font-size: var(--font-size-md);
+.tab-btn--active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--color-primary);
+}
+.tab-icon {
   margin-right: var(--spacing-8);
-}
-
-/* ФИКС: Пустые CSS правила удалены */
-
-@media (max-width: 768px) {
-  .data-page {
-    padding: var(--spacing-16);
-  }
-
-  .data-page__header {
-    padding: var(--spacing-16);
-  }
-
-  .data-page__header-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-16);
-  }
-
-  .data-page__header-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .data-page__tab {
-    padding: var(--spacing-8) var(--spacing-14) !important;
-    font-size: var(--font-size-sm);
-  }
 }
 </style>

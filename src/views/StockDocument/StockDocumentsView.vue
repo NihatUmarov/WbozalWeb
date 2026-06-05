@@ -10,60 +10,71 @@
       @tab-change="(v) => changeTab(v as DocModel)"
     >
       <template #header-actions>
-        <div class="flex items-center gap-3">
-          <BaseButton v-if="['FBO', 'ORD'].includes(currentModel)" @click="showCreatePanel = true">
+        <div class="flex items-center gap-12">
+          <button
+            v-if="['FBO', 'ORD'].includes(currentModel)"
+            class="btn btn-primary"
+            @click="showCreatePanel = true"
+          >
             + Создать {{ currentModel === 'FBO' ? 'приход' : 'отгрузку' }}
-          </BaseButton>
+          </button>
 
-          <ToggleSwitch
-            v-model="filterArchive"
-            label="Архивные записи"
-            @update:model-value="fetchDocuments"
-          />
+          <label class="toggle">
+            <input type="checkbox" v-model="filterArchive" @change="fetchDocuments" />
+            <div class="toggle-track"></div>
+            <span>Архивные записи</span>
+          </label>
         </div>
       </template>
 
       <template #cell(id)="{ value }">
-        <span class="text-primary font-semibold tabular-nums">#{{ value }}</span>
+        <span class="text-primary font-bold font-mono text-sm tabular-nums">#{{ value }}</span>
       </template>
 
       <template #cell(date)="{ value }">
-        <span class="text-secondary text-sm tabular-nums">{{ formatDate(String(value)) }}</span>
+        <span class="text-secondary font-mono text-xs tabular-nums">{{
+          formatDate(String(value))
+        }}</span>
       </template>
 
       <template #cell(status)="{ value }">
-        <StatusBadge :variant="getStatusVariant(String(value))">
+        <span :class="['badge', `badge--${getStatusVariant(String(value))}`]">
           {{ value || 'Нет статуса' }}
-        </StatusBadge>
+        </span>
+      </template>
+
+      <template #cell(quantity)="{ value }">
+        <span
+          v-if="Number(value) > 0"
+          class="text-xs font-semibold text-warning bg-warning-subtle border-warning px-6 py-4 rounded-6 tabular-nums"
+        >
+          {{ value }} шт.
+        </span>
+        <span v-else class="text-muted text-xs font-medium tabular-nums">0 шт.</span>
       </template>
 
       <template #cell(quantityFact)="{ value }">
         <span
-          :class="Number(value) > 0 ? 'text-success font-semibold' : 'text-secondary tabular-nums'"
+          v-if="Number(value) > 0"
+          class="text-xs font-bold text-success bg-success-subtle border-success px-6 py-4 rounded-6 tabular-nums"
         >
-          {{ Number(value) > 0 ? `${value} шт.` : '0' }}
+          {{ value }} шт.
         </span>
+        <span v-else class="text-muted text-xs font-medium tabular-nums">0 шт.</span>
       </template>
 
       <template #cell(quantityDefect)="{ value }">
         <span
-          :class="
-            Number(value) > 0
-              ? 'text-error font-semibold bg-error-subtle rounded px-2.5 py-1 text-xs tabular-nums'
-              : 'text-secondary tabular-nums'
-          "
+          v-if="Number(value) > 0"
+          class="text-xs font-bold text-error bg-error-subtle border-error px-6 py-4 rounded-6 tabular-nums"
         >
-          {{ Number(value) > 0 ? `${value} шт.` : '0' }}
+          {{ value }} шт.
         </span>
+        <span v-else class="text-muted text-xs font-medium tabular-nums">0 шт.</span>
       </template>
 
       <template #cell(actions)="{ item }">
-        <button
-          class="bg-secondary border border-border text-secondary px-3 py-1 rounded text-xs font-medium cursor-pointer transition-all hover:border-primary hover:text-primary"
-          @click="openDetails(item.id)"
-        >
-          👁 Состав
-        </button>
+        <button class="action-btn" @click="openDetails(item.id)">👁 Состав</button>
       </template>
     </BaseDataPage>
 
@@ -93,11 +104,8 @@ import type { StockDocument } from '@/api/types'
 
 import MainLayout from '@/components/ui/MainLayout.vue'
 import BaseDataPage, { type TabItem } from '@/components/ui/BaseDataPage.vue'
-import { type TableColumn } from '@/components/ui/BaseTable.vue'
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
-import StatusBadge from '@/components/ui/StatusBadge.vue'
+import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import TheToast from '@/components/ui/TheToast.vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
 import DocumentCreateModal from './DocumentCreateModal.vue'
 import DocumentDetailsModal from './DocumentDetailsModal.vue'
 
@@ -170,3 +178,50 @@ const getStatusVariant = (s: string): 'success' | 'info' | 'neutral' => {
 
 onMounted(fetchDocuments)
 </script>
+
+<style scoped>
+.action-btn {
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  padding: var(--spacing-4) var(--spacing-12);
+  border-radius: var(--radius-6);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.action-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.border-error {
+  border: 1px solid rgba(239, 68, 68, 0.1);
+}
+.px-6 {
+  padding-left: var(--spacing-6);
+  padding-right: var(--spacing-6);
+}
+.py-4 {
+  padding-top: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+}
+
+/* Маппинг специфичных цветов баджей для текстовых статусов накладных */
+.badge--neutral {
+  background: rgba(113, 113, 122, 0.06);
+  color: var(--color-text-secondary);
+  border: 1px solid rgba(113, 113, 122, 0.08);
+}
+.badge--neutral::before {
+  background: #71717a;
+}
+.badge--info {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border: 1px solid rgba(79, 70, 229, 0.1);
+}
+.badge--info::before {
+  background: var(--color-primary);
+}
+</style>

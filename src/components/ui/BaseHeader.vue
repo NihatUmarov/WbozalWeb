@@ -2,7 +2,21 @@
   <header class="main-header glass-effect">
     <div class="main-header__left">
       <div class="main-header__logo" @click="router.push('/')">WBOZAL.RU</div>
-      <TheDock class="main-header__dock" />
+
+      <nav class="header-dock">
+        <router-link
+          v-for="item in menuItems"
+          :key="item.label"
+          :to="item.to"
+          class="dock-item"
+          active-class="active"
+        >
+          <div class="dock-button">
+            <component :is="item.icon" class="dock-icon mobile-only" />
+            <span class="dock-label">{{ item.label }}</span>
+          </div>
+        </router-link>
+      </nav>
     </div>
 
     <div class="main-header__right">
@@ -10,103 +24,140 @@
         <div
           class="dropdown-trigger"
           :class="{ 'not-selected': !selectedId, 'is-open': isDropdownOpen }"
-          @click="isDropdownOpen = !isDropdownOpen"
+          @click="toggleDropdown"
         >
           <Building2 class="dropdown-icon" />
           <span class="trigger-text">{{ currentJurpersonName }}</span>
           <ChevronDown class="arrow-icon" :class="{ rotate: isDropdownOpen }" />
         </div>
-
-        <div class="dropdown-menu" :class="{ 'is-visible': isDropdownOpen }">
-          <div class="search-wrapper">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Поиск организации..."
-              class="dropdown-search"
-              @click.stop
-            />
-          </div>
-
-          <div class="dropdown-list">
-            <div
-              v-for="jurperson in filteredJurpersons"
-              :key="jurperson.idJurperson"
-              :class="['dropdown-item', { active: jurperson.idJurperson === selectedId }]"
-              @click="handleJurpersonSelect(jurperson.idJurperson)"
-            >
-              <div class="brand-info-block">
-                <span class="brand-name">{{ jurperson.jurpersonName }}</span>
-                <span class="brand-id">ID: {{ jurperson.idJurperson }}</span>
-              </div>
-              <Check v-if="jurperson.idJurperson === selectedId" class="check-mark-icon" />
-            </div>
-
-            <div v-if="filteredJurpersons.length === 0" class="no-results">Ничего не найдено</div>
-          </div>
-
-          <div class="dropdown-footer">
-            <button class="add-org-btn" @click="goToCreatePage">
-              <span>Мои организации</span>
-            </button>
-          </div>
-        </div>
       </div>
 
-      <div class="user-menu">
-        <button class="logout-btn" @click="handleLogoutAction" title="Выйти из аккаунта">
-          <span class="logout-text">Выход</span>
-          <LogOut class="logout-icon" />
-        </button>
-      </div>
+      <button class="logout-btn" @click="handleLogoutAction" title="Выйти">
+        <span class="logout-text">Выход</span>
+        <LogOut class="logout-icon" />
+      </button>
     </div>
   </header>
+
+  <Teleport to="body">
+    <Transition name="dropdown-fade">
+      <div v-if="isDropdownOpen" class="floating-dropdown-menu" :style="dropdownStyle" @click.stop>
+        <div class="search-wrapper">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Поиск организации..."
+            class="input search-input"
+          />
+        </div>
+
+        <div class="dropdown-list">
+          <div
+            v-for="jurperson in filteredJurpersons"
+            :key="jurperson.idJurperson"
+            :class="['dropdown-item', { active: jurperson.idJurperson === selectedId }]"
+            @click="handleJurpersonSelect(jurperson.idJurperson)"
+          >
+            <div class="brand-info-block">
+              <span class="brand-name">{{ jurperson.jurpersonName }}</span>
+              <span class="brand-id">ID: {{ jurperson.idJurperson }}</span>
+            </div>
+            <Check v-if="jurperson.idJurperson === selectedId" class="check-mark-icon" />
+          </div>
+          <div v-if="filteredJurpersons.length === 0" class="no-results">Ничего не найдено</div>
+        </div>
+
+        <div class="dropdown-footer">
+          <button class="add-org-btn" @click="goToCreatePage">Мои организации</button>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { Building2, ChevronDown, Check, LogOut } from 'lucide-vue-next'
+import {
+  Building2,
+  ChevronDown,
+  Check,
+  LogOut,
+  Package,
+  FileText,
+  CreditCard,
+  User,
+} from 'lucide-vue-next'
 import { useJurpersons } from '@/composables/useJurpersons'
-import TheDock from '@/components/ui/MacDock.vue'
 
 const router = useRouter()
 const dropdownRef = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
 const isDropdownOpen = ref(false)
 
-// ФИКС ТУТ: Передаем undefined вместо null, чтобы TypeScript не ругался
+// Координаты для позиционирования телепортированного меню
+const dropdownStyle = ref({ top: '0px', left: '0px', width: '280px' })
+
+const menuItems = [
+  { label: 'Остатки', icon: Package, to: '/remains' },
+  { label: 'Накладные', icon: FileText, to: '/documents' },
+  { label: 'Карточки', icon: CreditCard, to: '/cards' },
+  { label: 'Профиль', icon: User, to: '/profile' },
+]
+
 const { jurpersons, selectedId, currentJurperson, load, select } = useJurpersons(undefined)
 
-const currentJurpersonName = computed(() => {
-  return currentJurperson.value?.jurpersonName || 'Выберите организацию'
-})
+const currentJurpersonName = computed(
+  () => currentJurperson.value?.jurpersonName || 'Выберите организацию',
+)
 
 const filteredJurpersons = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return jurpersons.value
-
   return jurpersons.value.filter((j) => {
-    const name = j.jurpersonName ? j.jurpersonName.toLowerCase() : ''
-    const id = j.idJurperson ? j.idJurperson.toString() : ''
+    const name = j.jurpersonName?.toLowerCase() || ''
+    const id = j.idJurperson?.toString() || ''
     return name.includes(query) || id.includes(query)
   })
 })
 
+// Динамический расчет положения дропдауна под кнопкой-триггером
+const updateDropdownPosition = () => {
+  if (!dropdownRef.value) return
+  const rect = dropdownRef.value.getBoundingClientRect()
+
+  dropdownStyle.value = {
+    top: `${rect.bottom + window.scrollY + 6}px`,
+    // Выравниваем по правому краю кнопки-триггера
+    left: `${rect.right - 280}px`,
+    width: '280px',
+  }
+}
+
+const toggleDropdown = async () => {
+  isDropdownOpen.value = !isDropdownOpen.value
+  if (isDropdownOpen.value) {
+    await nextTick()
+    updateDropdownPosition()
+  }
+}
+
 const handleJurpersonSelect = async (idJurperson: number) => {
   if (idJurperson === selectedId.value) return
-
-  const success = await select(idJurperson)
-  if (success) {
+  if (await select(idJurperson)) {
     isDropdownOpen.value = false
-    setTimeout(() => {
-      window.location.reload()
-    }, 500)
+    setTimeout(() => window.location.reload(), 500)
   }
 }
 
 const handleClickOutside = (event: MouseEvent) => {
-  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
+  // Закрываем, если кликнули вне кнопки триггера и вне самого плавающего меню
+  const target = event.target as HTMLElement
+  if (
+    dropdownRef.value &&
+    !dropdownRef.value.contains(target) &&
+    !target.closest('.floating-dropdown-menu')
+  ) {
     isDropdownOpen.value = false
   }
 }
@@ -123,11 +174,15 @@ const handleLogoutAction = () => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', updateDropdownPosition)
+  window.addEventListener('scroll', updateDropdownPosition)
   load()
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', updateDropdownPosition)
+  window.removeEventListener('scroll', updateDropdownPosition)
 })
 </script>
 
@@ -139,9 +194,9 @@ onUnmounted(() => {
   right: 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 var(--spacing-24);
-  height: 70px;
-  box-sizing: border-box;
+  height: 64px;
   border-bottom: 1px solid var(--color-border);
   z-index: var(--z-sticky);
   background: var(--glass-background);
@@ -149,237 +204,200 @@ onUnmounted(() => {
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-.main-header__left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-24);
-  flex: 1;
-}
-
-.main-header__logo {
-  font-weight: var(--font-weight-extrabold);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-2xl);
-  letter-spacing: var(--letter-spacing-tight);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.main-header__dock {
-  flex: 0 0 auto;
-}
-
+.main-header__left,
 .main-header__right {
   display: flex;
   align-items: center;
   gap: var(--spacing-20);
-  flex: 1;
-  justify-content: flex-end;
 }
 
+.main-header__logo {
+  font-weight: 800;
+  color: var(--color-text-primary);
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+}
+
+.header-dock {
+  display: flex;
+  gap: var(--spacing-4);
+  padding: 4px;
+  background: var(--color-background-secondary);
+  border-radius: var(--radius-8);
+  border: 1px solid var(--color-border);
+}
+
+.dock-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: 6px var(--spacing-12);
+  border-radius: var(--radius-6);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.dock-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+/* Скрываем иконки на десктопе по умолчанию */
+.mobile-only {
+  display: none;
+}
+
+.dock-item:hover .dock-button {
+  color: var(--color-text-primary);
+  background: var(--color-border);
+}
+.dock-item.active .dock-button {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+/* Выпадающий список */
 .brand-dropdown {
   position: relative;
   user-select: none;
 }
-
-.dropdown-footer {
-  border-top: 1px solid var(--color-border-light);
-  padding: var(--spacing-8);
-  background: var(--color-background-secondary);
-}
-
-.add-org-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-6);
-  padding: var(--spacing-8) var(--spacing-12);
-  background: var(--color-surface);
-  border: 1px dashed var(--color-border-dark);
-  border-radius: var(--border-radius-8);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-primary-dark);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-xs);
-}
-
-.add-org-btn:hover {
-  background: var(--color-primary-subtle);
-  border-color: var(--color-primary-muted);
-  color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.add-org-btn:active {
-  transform: scale(0.98);
-  box-shadow: var(--shadow-xs);
-}
-
 .dropdown-trigger {
   display: flex;
   align-items: center;
   gap: var(--spacing-8);
-  padding: var(--spacing-8) var(--spacing-12);
+  padding: 6px var(--spacing-12);
   background: var(--color-background-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-10);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-8);
+  font-size: 13px;
+  font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
 }
-
-.dropdown-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.trigger-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-}
-
-.dropdown-trigger:hover,
-.dropdown-trigger.is-open {
-  background: var(--color-background-secondary);
+.dropdown-trigger:hover {
+  border-color: var(--color-text-secondary);
   color: var(--color-text-primary);
-  border-color: var(--color-border-dark);
 }
-
 .dropdown-trigger.not-selected {
   background: var(--color-error-subtle);
-  border-color: var(--color-error-muted);
+  border-color: var(--color-error-text);
   color: var(--color-error-text);
-  animation: pulse 2s infinite;
 }
-
+.trigger-text {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .arrow-icon {
   width: 14px;
   height: 14px;
-  stroke: var(--color-text-tertiary);
-  stroke-width: 2;
   transition: transform var(--transition-fast);
-  flex-shrink: 0;
 }
-
 .arrow-icon.rotate {
   transform: rotate(180deg);
 }
 
-.dropdown-menu {
+/* ПЛАВАЮЩЕЕ МЕНЮ (Абсолютное позиционирование в body) */
+.floating-dropdown-menu {
   position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: var(--spacing-8);
-  width: 280px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-12);
-  box-shadow: var(--shadow-lg);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-8px);
-  transition: all var(--transition-base);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-10);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
-}
-
-.dropdown-menu.is-visible {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+  /* Ставим максимальный z-index, чтобы перебить любые таблицы */
+  z-index: 99999;
 }
 
 .search-wrapper {
-  padding: var(--spacing-10);
-  border-bottom: 1px solid var(--color-border-light);
+  padding: var(--spacing-8);
   background: var(--color-background-secondary);
+  border-bottom: 1px solid var(--color-border);
 }
-
-.dropdown-search {
-  width: 100%;
-  padding: var(--spacing-8) var(--spacing-12);
-  border: 1px solid var(--color-border-dark);
-  border-radius: var(--border-radius-8);
-  font-size: var(--font-size-base);
-  box-sizing: border-box;
-  outline: none;
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-}
-
-.dropdown-search:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-subtle);
+.search-input {
+  padding: var(--spacing-6) var(--spacing-12);
+  font-size: 13px;
+  border-radius: var(--radius-6);
 }
 
 .dropdown-list {
   max-height: 240px;
   overflow-y: auto;
+  scrollbar-width: thin;
 }
-
 .dropdown-item {
-  padding: var(--spacing-10) var(--spacing-14);
+  padding: var(--spacing-10) var(--spacing-12);
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  border-left: 3px solid transparent;
-  transition: all var(--transition-fast);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+  color: var(--color-text-primary);
 }
-
+.dropdown-item:last-child {
+  border-bottom: none;
+}
 .dropdown-item:hover {
   background: var(--color-background-secondary);
 }
-
 .dropdown-item.active {
   background: var(--color-primary-subtle);
-  border-left-color: var(--color-primary);
+  color: var(--color-primary);
 }
-
 .brand-info-block {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: 2px;
 }
-
 .brand-name {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
 }
-
-.dropdown-item.active .brand-name {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
-}
-
 .brand-id {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  background: var(--color-background-secondary);
-  padding: var(--spacing-1) var(--spacing-4);
-  border-radius: var(--border-radius-4);
-  width: fit-content;
+  font-size: 10px;
+  color: var(--color-text-tertiary);
 }
-
-.dropdown-item.active .brand-id {
-  background: var(--color-primary-subtle);
-  color: var(--color-primary);
-}
-
 .check-mark-icon {
   width: 16px;
   height: 16px;
-  stroke: var(--color-primary);
-  stroke-width: 2.5;
   flex-shrink: 0;
+}
+.no-results {
+  padding: var(--spacing-16);
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.dropdown-footer {
+  padding: var(--spacing-8);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background-secondary);
+}
+.add-org-btn {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border-dark);
+  padding: var(--spacing-8);
+  border-radius: var(--radius-6);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+.add-org-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-surface);
 }
 
 .logout-btn {
@@ -387,68 +405,43 @@ onUnmounted(() => {
   border: none;
   color: var(--color-text-secondary);
   cursor: pointer;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-base);
-  transition: all var(--transition-fast);
-  padding: var(--spacing-8) var(--spacing-12);
-  border-radius: var(--border-radius-8);
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: var(--spacing-6);
+  gap: 6px;
+  padding: 6px;
+  transition: color var(--transition-fast);
 }
-
 .logout-btn:hover {
   color: var(--color-error-text);
-  background: var(--color-error-subtle);
 }
-
 .logout-icon {
-  width: 18px;
-  height: 18px;
-  stroke: currentColor;
-  stroke-width: 2;
+  width: 16px;
+  height: 16px;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast);
+}
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
-@media (max-width: 1050px) {
-  .main-header {
-    padding: 0 var(--spacing-16);
-    gap: var(--spacing-12);
-  }
-  .main-header__logo {
-    display: none;
-  }
-  .main-header__left {
-    flex: 1;
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 650px) {
-  .main-header {
-    padding: 0 var(--spacing-10);
-    gap: var(--spacing-8);
-  }
-  .main-header__right {
-    gap: var(--spacing-8);
-  }
-  .trigger-text {
-    max-width: 75px;
-  }
+@media (max-width: 768px) {
+  .main-header__logo,
+  .dock-label,
   .logout-text {
     display: none;
   }
-  .logout-btn {
-    padding: var(--spacing-6);
+  /* На мобилках возвращаем иконки в меню, чтобы интерфейс влезал в экран */
+  .mobile-only {
+    display: block;
   }
 }
 </style>

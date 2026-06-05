@@ -5,22 +5,21 @@
       :items="remains"
       :columns="columns"
       :loading="loading"
-      :row-class="(item) => (item.isDefect ? 'bg-error-subtle/30' : '')"
+      :row-class="(item) => (item.isDefect ? 'row-defect' : '')"
       empty-text="Остатков не найдено"
       empty-icon="📦"
     >
       <template #header-actions>
-        <ToggleSwitch
-          v-model="filterDefect"
-          label="Показать только брак"
-          variant="defect"
-          @update:model-value="fetchRemains"
-        />
+        <label class="toggle toggle-defect">
+          <input type="checkbox" v-model="filterDefect" @change="fetchRemains" />
+          <div class="toggle-track"></div>
+          <span>Показать только брак</span>
+        </label>
       </template>
 
       <template #cell(cArt)="{ value }">
         <span
-          class="font-mono text-xs bg-secondary text-primary font-semibold px-2 py-0.5 rounded border border-border"
+          class="font-mono text-xs font-semibold text-primary bg-secondary border-dark px-6 py-4 rounded-6"
         >
           {{ value || '—' }}
         </span>
@@ -28,7 +27,7 @@
 
       <template #cell(barcode)="{ value }">
         <span
-          class="font-mono text-secondary text-xs tracking-wider bg-surface px-1.5 py-0.5 rounded border border-border/40"
+          class="font-mono text-xs text-muted bg-secondary border-dark px-6 py-4 rounded-6 tracking-wide"
         >
           {{ value || '—' }}
         </span>
@@ -36,7 +35,7 @@
 
       <template #cell(cName)="{ value }">
         <div
-          class="truncate max-w-md text-sm font-medium text-primary py-1"
+          class="text-sm font-semibold text-primary truncate max-w-md"
           :title="String(value || '')"
         >
           {{ value || 'Без названия' }}
@@ -46,27 +45,27 @@
       <template #cell(irQuant)="{ value }">
         <span
           v-if="Number(value) > 0"
-          class="text-success font-bold bg-success-subtle rounded px-2.5 py-1 text-xs tabular-nums border border-success/10"
+          class="text-xs font-bold text-success bg-success-subtle border-success px-6 py-4 rounded-6 tabular-nums"
         >
           {{ value }} шт.
         </span>
-        <span v-else class="text-border text-xs font-medium tabular-nums">0 шт.</span>
+        <span v-else class="text-muted text-xs font-medium tabular-nums">0 шт.</span>
       </template>
 
       <template #cell(iBronTask)="{ value }">
         <span
           v-if="Number(value) > 0"
-          class="text-warning font-semibold bg-warning-subtle rounded px-2.5 py-1 text-xs tabular-nums border border-warning/10"
+          class="text-xs font-semibold text-warning bg-warning-subtle border-warning px-6 py-4 rounded-6 tabular-nums"
         >
           {{ value }} шт.
         </span>
-        <span v-else class="text-border text-xs font-medium tabular-nums">—</span>
+        <span v-else class="text-muted text-xs font-medium tabular-nums">—</span>
       </template>
 
       <template #cell(isDefect)="{ value }">
-        <StatusBadge :variant="value ? 'error' : 'success'">
+        <span :class="['badge', value ? 'badge--error' : 'badge--success']">
           {{ value ? 'Брак' : 'Исправен' }}
-        </StatusBadge>
+        </span>
       </template>
     </BaseDataPage>
   </MainLayout>
@@ -76,9 +75,7 @@
 import { ref, onMounted } from 'vue'
 import MainLayout from '@/components/ui/MainLayout.vue'
 import BaseDataPage from '@/components/ui/BaseDataPage.vue'
-import { type TableColumn } from '@/components/ui/BaseTable.vue'
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
-import StatusBadge from '@/components/ui/StatusBadge.vue'
+import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import { remainsService } from '@/api/remainsService'
 import { useAsync } from '@/composables/useAsync'
 import type { RemainItem } from '@/api/types'
@@ -104,3 +101,34 @@ const fetchRemains = () => {
 
 onMounted(fetchRemains)
 </script>
+
+<style scoped>
+.border-dark {
+  border: 1px solid var(--color-border-dark);
+}
+.border-success {
+  border: 1px solid rgba(34, 197, 94, 0.1);
+}
+.border-warning {
+  border: 1px solid rgba(245, 158, 11, 0.1);
+}
+.rounded-6 {
+  border-radius: var(--radius-6);
+}
+.px-4 {
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+.py-4 {
+  padding-top: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+}
+.px-6 {
+  padding-left: var(--spacing-6);
+  padding-right: var(--spacing-6);
+}
+.row-defect :deep(td) {
+  background-color: var(--color-error-subtle) !important;
+  opacity: 0.9;
+}
+</style>

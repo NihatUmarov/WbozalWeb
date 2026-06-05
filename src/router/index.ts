@@ -9,7 +9,7 @@ import JurpersonSelectView from '../views/JurpersonSelectView.vue'
 const routes = [
   {
     path: '/',
-    redirect: '/profile',
+    redirect: '/documents', // Изменено здесь
   },
   {
     path: '/login',
@@ -80,7 +80,7 @@ router.beforeEach((to, from, next) => {
   }
 
   if (to.path === '/login' && isAuthenticated) {
-    next('/profile')
+    next('/documents') // Изменено здесь
     return
   }
 
