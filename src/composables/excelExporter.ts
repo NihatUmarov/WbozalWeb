@@ -20,8 +20,8 @@ export class ExcelDocumentExporter {
     const dataToExport = items.map((item) => {
       const row: Record<string, string | number> = {
         'ID товара': item.idName,
-        Артикул: item.article || '—',
-        'Наименование товара': item.name || 'Без названия',
+        Артикул: item.cArt || '—',
+        'Наименование товара': item.cName || 'Без названия',
         Штрихкод: item.barcode || '—',
         'План (Кол-во)': item.qty,
         'Факт (Принято)': item.qtyFact,

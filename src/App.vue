@@ -1,6 +1,10 @@
 <template>
-  <div id="app">
-    <router-view />
+  <div id="app" class="app-container">
+    <BaseHeader v-if="$route.meta.requiresJurperson" />
+
+    <main class="main-content">
+      <router-view />
+    </main>
 
     <transition name="fade">
       <div v-if="updateAvailable" class="update-notification">
@@ -15,6 +19,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import BaseHeader from '@/components/ui/BaseHeader.vue'
 
 interface VersionResponse {
   version: string
@@ -73,6 +78,30 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Контейнер для контента страниц:
+  - Сверху: минимальный отступ 12px (чуть-чуть)
+  - По бокам: аккуратные 2.5%
+  - Снизу: полностью убран (0px)
+*/
+.main-content {
+  flex: 1;
+  width: 100%;
+  padding: 80px 2.5% 0px 2.5%;
+  box-sizing: border-box;
+}
+
+/* На случай, если на каких-то страницах шапка становится фиксированной */
+.app-container :deep(.main-header[style*='position: fixed']) + .main-content,
+.app-container :deep(.main-header.is-fixed) + .main-content {
+  margin-top: 85px !important;
+}
+
 .update-notification {
   position: fixed;
   top: 20px;
@@ -124,7 +153,6 @@ onBeforeUnmount(() => {
   border: 1px solid #42b983;
 }
 
-/* Анимация появления плашки */
 .fade-enter-active,
 .fade-leave-active {
   transition:

@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseModal from '@/components/ui/UnifiedUI.vue'
 import type { ImportErrorRecord } from '@/composables/useExcelImport'
 
 defineProps<{ isOpen: boolean; errors: ImportErrorRecord[] }>()

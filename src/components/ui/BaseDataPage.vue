@@ -1,3 +1,4 @@
+<!-- BaseDataPage.vue -->
 <template>
   <div class="data-page flex flex-col gap-20">
     <div class="card page-header" v-if="hasHeader">
@@ -15,7 +16,6 @@
             <img src="@/components/icons/office-exel.svg" alt="Excel" class="excel-icon-img" />
             <span>Выгрузить в Excel</span>
           </button>
-
           <slot name="header-actions"></slot>
         </div>
       </div>
@@ -45,8 +45,8 @@
         :max-height="tableMaxHeight"
         :row-class="rowClass"
       >
-        <template v-for="(_, name) in $slots" :key="name" v-slot:[name]="slotData">
-          <slot :name="name" v-bind="slotData"></slot>
+        <template v-for="(_, name) in $slots as Record<string, any>" :key="name" #[name]="slotData">
+          <slot :name="name" v-bind="slotData || {}"></slot>
         </template>
       </BaseTable>
     </div>
@@ -55,7 +55,8 @@
 
 <script setup lang="ts" generic="T extends Record<string, unknown>">
 import { ref, computed } from 'vue'
-import BaseTable, { type TableColumn } from './BaseTable.vue'
+import BaseTable from './BaseTable.vue'
+import type { TableColumn } from './BaseTable.vue'
 
 export interface TabItem {
   label: string
@@ -100,11 +101,8 @@ interface TableInstance {
 const tableRef = ref<TableInstance | null>(null)
 
 const handleExportClick = () => {
-  if (tableRef.value && typeof tableRef.value.triggerExcelExport === 'function') {
+  if (tableRef.value?.triggerExcelExport) {
     tableRef.value.triggerExcelExport(props.title)
-  } else {
-    console.error('Критическая ошибка: метод triggerExcelExport не найден в tableRef!')
-    alert('Ошибка инициализации таблицы. Открой консоль разработчика (F12)')
   }
 }
 

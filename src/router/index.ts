@@ -5,7 +5,7 @@ import StockDocumentsView from '../views/Invoice/InvoiceView.vue'
 import RemainsList from '../views/RemainsList.vue'
 import CardsView from '../views/CardsView.vue'
 import JurpersonSelectView from '../views/JurpersonSelectView.vue'
-import { usePermissions } from '../services/permissionsStore' // Импортируем наше хранилище прав
+import { adminService, type UserPermissionsResponse } from '../api/adminService' // Импортируем наш новый единый сервис
 
 const routes = [
   {
@@ -21,25 +21,25 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: ProfileView,
-    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'profile' }, // Проверяем флаг profile
+    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'profile' },
   },
   {
     path: '/documents',
     name: 'StockDocuments',
     component: StockDocumentsView,
-    meta: { requiresAuth: true, requiresJurperson: true }, // Сюда пускаем всех, у кого есть организация
+    meta: { requiresAuth: true, requiresJurperson: true },
   },
   {
     path: '/remains',
     name: 'RemainsList',
     component: RemainsList,
-    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'remains' }, // Проверяем флаг remains
+    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'remains' },
   },
   {
     path: '/cards',
     name: 'CardsList',
     component: CardsView,
-    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'cards' }, // Проверяем флаг cards
+    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'cards' },
   },
   {
     path: '/select-jurperson',
@@ -57,8 +57,7 @@ const router = createRouter({
   },
 })
 
-router.beforeEach(async (to, from, next) => {
-  // Добавили async
+router.beforeEach(async (to, _from) => {
   const isAuthenticated = !!localStorage.getItem('access_token')
 
   const getJurpersonIdFromToken = () => {
@@ -76,36 +75,42 @@ router.beforeEach(async (to, from, next) => {
 
   const hasJurperson = !!getJurpersonIdFromToken()
 
+  // 1. Не авторизован — марш на логин
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
-    return
+    return '/login'
   }
 
+  // 2. Авторизован и лезет на логин — отправляем в документы
   if (to.path === '/login' && isAuthenticated) {
-    next('/documents')
-    return
+    return '/documents'
   }
 
+  // 3. Нет выбранной организации — отправляем выбирать
   if (to.meta.requiresJurperson && isAuthenticated && !hasJurperson) {
-    next('/select-jurperson')
-    return
+    return '/select-jurperson'
   }
 
+  // 4. Проверка прав через наш новый синглтон adminService
   if (isAuthenticated && hasJurperson) {
-    const { permissions, isLoaded, fetchPermissions } = usePermissions()
-    if (!isLoaded.value) {
-      await fetchPermissions()
+    // Если реактивное состояние еще не загружено, запрашиваем API
+    if (!adminService.isLoaded.value) {
+      await adminService.getPermissions().catch(() => {
+        // Ошибка сети или авторизации — сбрасываем состояние
+        adminService.resetPermissions()
+      })
     }
+
     const requiredPermission = to.meta.requiredPermission as
-      | keyof typeof permissions.value
+      | keyof UserPermissionsResponse
       | undefined
-    if (requiredPermission && !permissions.value[requiredPermission]) {
-      next('/documents')
-      return
+
+    // Проверяем флаг через .value из computed свойства сервиса
+    if (requiredPermission && !adminService.permissions.value[requiredPermission]) {
+      return '/documents'
     }
   }
 
-  next()
+  return true // Переход разрешен
 })
 
 export default router

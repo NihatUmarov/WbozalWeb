@@ -1,5 +1,5 @@
 <template>
-  <BaseBottomSheet :is-open="isOpen" max-width="7xl" @update:is-open="close">
+  <BaseModal :is-open="isOpen" variant="sheet" max-width="5xl" @update:is-open="close">
     <template #header>
       <div class="flex items-center gap-12">
         <span
@@ -15,7 +15,7 @@
             modelType === 'FBO'
               ? 'Новый приход'
               : filterDefect
-                ? 'Новая отгрузка брака'
+                ? 'Новая отгрузка braka'
                 : 'Новая отгрузка'
           }}
         </h2>
@@ -30,42 +30,40 @@
       <p class="text-sm font-medium">Загружаем состав позиций...</p>
     </div>
 
-    <div v-else class="flex flex-col gap-32 py-12">
-      <section class="flex flex-col gap-16">
-        <div class="pb-8 border-b">
-          <h3 class="text-lg font-bold text-primary m-0">Основная информация</h3>
-        </div>
-
-        <div class="grid-3 gap-20">
-          <div class="input-group">
+    <div v-else class="flex flex-col gap-24 py-12">
+      <section class="w-full">
+        <div class="flex items-start gap-16 w-full">
+          <div class="input-group flex-shrink-0" style="width: 200px">
             <label class="input-label text-muted font-medium text-xs mb-6 block">
               {{ modelType === 'FBO' ? 'Планируемая дата прихода' : 'Планируемая дата отгрузки' }}
             </label>
-            <input v-model="formHeader.eventDate" type="date" class="input" />
+            <input v-model="formHeader.eventDate" type="date" class="input w-full" />
           </div>
 
-          <div v-if="modelType === 'ORD'" class="input-group">
-            <label class="input-label text-muted font-medium text-xs mb-6 block"
-              >Направление (Куда / Откуда)</label
-            >
+          <div v-if="modelType === 'ORD'" class="input-group flex-shrink-0" style="width: 260px">
+            <label class="input-label text-muted font-medium text-xs mb-6 block">
+              Направление (Куда / Откуда)
+            </label>
             <input
               v-model="formHeader.direction"
               type="text"
               placeholder="Коледино, Озон, г. Москва..."
-              class="input"
+              class="input w-full"
             />
           </div>
 
-          <div class="input-group" :class="{ 'col-span-2': modelType === 'FBO' }">
-            <label class="input-label text-muted font-medium text-xs mb-6 block"
-              >Техническое задание</label
-            >
-            <input
-              v-model="formHeader.comment"
-              type="text"
-              placeholder="Дополнительная информация для склада..."
-              class="input"
-            />
+          <div class="input-group flex-1 textarea-container-wrapper">
+            <label class="input-label text-muted font-medium text-xs mb-6 block">
+              Техническое задание
+            </label>
+            <div class="textarea-relative-box" style="height: 38px">
+              <textarea
+                v-model="formHeader.comment"
+                placeholder="Дополнительная информация для склада..."
+                class="input absolute top-0 left-0 w-full expanding-textarea"
+                rows="1"
+              ></textarea>
+            </div>
           </div>
         </div>
       </section>
@@ -208,7 +206,7 @@
         <span v-else>Сохранить и отправить на склад</span>
       </button>
     </template>
-  </BaseBottomSheet>
+  </BaseModal>
 
   <ExcelErrorsModal v-model:is-open="showErrorsModal" :errors="importErrors" />
 
@@ -227,16 +225,13 @@ import { catalogService, type CatalogItem } from '@/api/catalogService'
 import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'
 import { useExcelImport, type LocalPosition } from '@/composables/useExcelImport'
-
-import BaseBottomSheet from '@/components/ui/BaseBottomSheet.vue'
-import SharedProductTable from '@/components/ui/SharedProductTable.vue'
+import SharedProductTable from '@/components/ui/CatalogTable.vue'
 import ExcelErrorsModal from '@/components/modals/ExcelErrorsModal.vue'
 import DocumentCompositionModal from '@/components/modals/DocumentCompositionModal.vue'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import type { UnifiedProductItem } from '@/composables/useExcelImport'
+import BaseModal from '@/components/ui/UnifiedUI.vue'
 
-// Вычисляемое свойство, которое на лету приводит CatalogItem к строгому UnifiedProductItem,
-// заменяя возможные undefined в defectQuant на дефолтный 0.
 const unifiedCardsForImport = computed<UnifiedProductItem[]>(() => {
   return availableCards.value.map((card) => ({
     idName: card.idName,
@@ -245,7 +240,7 @@ const unifiedCardsForImport = computed<UnifiedProductItem[]>(() => {
     size: card.size || '—',
     irQuant: card.irQuant || 0,
     iBronTask: card.iBronTask || 0,
-    defectQuant: card.defectQuant ?? 0, // Убираем undefined, превращая в 0
+    defectQuant: card.defectQuant ?? 0,
     barcodes: card.barcodes || (card.barcode ? [card.barcode] : []),
     isDefect: card.isDefect ?? false,
     primaryImageURL: card.primaryImageURL,
@@ -322,7 +317,6 @@ const loadAvailableItems = () => {
   )
 }
 
-// Передаем строго типизированный computed вместо 'availableCards as any'
 const { importErrors, handleExcelImport } = useExcelImport(
   unifiedCardsForImport,
   props.modelType,
@@ -430,5 +424,69 @@ input::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* 1. Исправление наложения слоев:
+  Задаем контекст наложения для всей группы инпута ТЗ, чтобы при фокусе/hover
+  весь этот блок гарантированно вставал над кнопками и таблицей.
+*/
+.textarea-container-wrapper {
+  position: relative;
+  z-index: 20;
+}
+.textarea-container-wrapper:hover,
+.textarea-container-wrapper:focus-within {
+  z-index: 50; /* Поднимаем весь блок при взаимодействии */
+}
+
+.textarea-relative-box {
+  position: relative;
+  width: 100%;
+}
+
+/* Базовое состояние свернутого текстового поля */
+.expanding-textarea {
+  height: 38px;
+  line-height: 1.4;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  resize: none;
+  transition:
+    height 0.2s ease-in-out,
+    box-shadow 0.2s ease;
+  z-index: 10;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background-color: #fff;
+}
+
+/* 2. Исправление раскрытия без текста + уменьшение высоты:
+  Используем псевдокласс :not(:placeholder-shown), чтобы поле увеличивалось
+  ТОЛЬКО если пользователь туда что-то ввел, ИЛИ когда поле находится в активном фокусе (:focus).
+*/
+.textarea-container-wrapper:hover .expanding-textarea:not(:placeholder-shown),
+.expanding-textarea:focus {
+  height: 130px; /* Уменьшено в 2 раза (было 260px) */
+  overflow-y: auto;
+  white-space: normal;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.15),
+    0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Кастомный скроллбар */
+.expanding-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+.expanding-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+.expanding-textarea::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+.expanding-textarea::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 </style>

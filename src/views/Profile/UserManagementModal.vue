@@ -106,14 +106,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import BaseBottomSheet from '@/components/ui/BaseBottomSheet.vue'
+import { ref, watch, computed } from 'vue'
+import BaseBottomSheet from '@/components/ui/UnifiedUI.vue'
 import BaseTable, { type TableColumn } from '@/components/ui/BaseTable.vue'
 import { adminService, type UserBatchItem } from '@/api/adminService'
 import { useToast } from '@/composables/useToast'
-import { usePermissions } from '@/services/permissionsStore'
-
-const { permissions } = usePermissions()
+const permissions = computed(() => adminService.permissions.value)
 const props = defineProps<{
   isOpen: boolean
 }>()

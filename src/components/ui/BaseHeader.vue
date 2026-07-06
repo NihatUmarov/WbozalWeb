@@ -1,3 +1,4 @@
+<!-- BaseHeader.vue -->
 <template>
   <header class="main-header glass-effect">
     <div class="main-header__left">
@@ -87,28 +88,25 @@ import {
   User,
 } from 'lucide-vue-next'
 import { useJurpersons } from '@/composables/useJurpersons'
-import { usePermissions } from '@/services/permissionsStore'
+import { adminService } from '@/api/adminService' // Импорт остается
 
 const router = useRouter()
 const dropdownRef = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
 const isDropdownOpen = ref(false)
 
-const { permissions } = usePermissions()
+const permissions = adminService.permissions
 
 const menuItems = [
-  { label: 'Остатки', icon: Package, to: '/remains', permission: 'remains' },
-  { label: 'Накладные', icon: FileText, to: '/documents', permission: 'invoice' },
-  { label: 'Карточки', icon: CreditCard, to: '/cards', permission: 'cards' },
-  { label: 'Профиль', icon: User, to: '/profile', permission: 'profile' },
+  { label: 'Остатки', icon: Package, to: '/remains', permission: 'remains' as const },
+  { label: 'Накладные', icon: FileText, to: '/documents', permission: 'invoice' as const },
+  { label: 'Карточки', icon: CreditCard, to: '/cards', permission: 'cards' as const },
+  { label: 'Профиль', icon: User, to: '/profile', permission: 'profile' as const },
 ]
 
-const visibleMenuItems = computed(() => {
-  return menuItems.filter((item) => {
-    const key = item.permission as keyof typeof permissions.value
-    return permissions.value[key] === true
-  })
-})
+const visibleMenuItems = computed(() =>
+  menuItems.filter((item) => permissions.value[item.permission] === true),
+)
 
 const { jurpersons, selectedId, currentJurperson, load, select } = useJurpersons(undefined)
 const currentJurpersonName = computed(
@@ -125,21 +123,18 @@ const filteredJurpersons = computed(() => {
   })
 })
 
-const toggleDropdown = () => {
-  isDropdownOpen.value = !isDropdownOpen.value
-}
+const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value)
 
 const handleJurpersonSelect = async (idJurperson: number) => {
   if (idJurperson === selectedId.value) return
   if (await select(idJurperson)) {
     isDropdownOpen.value = false
-    setTimeout(() => window.location.reload(), 500)
+    window.location.reload()
   }
 }
 
 const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (dropdownRef.value && !dropdownRef.value.contains(target)) {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
     isDropdownOpen.value = false
   }
 }

@@ -1,136 +1,134 @@
 <template>
-  <MainLayout>
-    <div class="flex justify-center min-h-screen py-40 px-4">
-      <div class="w-full max-w-xl flex flex-col gap-20">
-        <header class="text-center flex flex-col gap-4">
-          <h1>Выбор организации</h1>
-          <p class="text-sm text-muted">
-            Выберите рабочее пространство или добавьте новое для управления складом
-          </p>
-        </header>
+  <div class="flex justify-center min-h-screen py-40 px-4">
+    <div class="w-full max-w-xl flex flex-col gap-20">
+      <header class="text-center flex flex-col gap-4">
+        <h1>Выбор организации</h1>
+        <p class="text-sm text-muted">
+          Выберите рабочее пространство или добавьте новое для управления складом
+        </p>
+      </header>
 
-        <div v-if="isStateLoading" class="card flex flex-col items-center justify-center gap-12">
-          <div class="table-spinner"></div>
-          <p class="text-sm text-muted">Загрузка списка организаций...</p>
+      <div v-if="isStateLoading" class="card flex flex-col items-center justify-center gap-12">
+        <div class="table-spinner"></div>
+        <p class="text-sm text-muted">Загрузка списка организаций...</p>
+      </div>
+
+      <div v-else class="flex flex-col gap-20">
+        <div class="flex justify-center">
+          <button
+            class="btn"
+            :class="showCreateForm ? 'btn-secondary' : 'btn-primary'"
+            @click="toggleCreateForm"
+          >
+            {{ showCreateForm ? 'Отменить создание' : 'Добавить новую организацию' }}
+          </button>
         </div>
 
-        <div v-else class="flex flex-col gap-20">
-          <div class="flex justify-center">
-            <button
-              class="btn"
-              :class="showCreateForm ? 'btn-secondary' : 'btn-primary'"
-              @click="toggleCreateForm"
-            >
-              {{ showCreateForm ? 'Отменить создание' : 'Добавить новую организацию' }}
-            </button>
-          </div>
+        <Transition name="fade-slide">
+          <div v-if="showCreateForm" class="card flex flex-col gap-20">
+            <h3>Новая организация</h3>
 
-          <Transition name="fade-slide">
-            <div v-if="showCreateForm" class="card flex flex-col gap-20">
-              <h3>Новая организация</h3>
+            <div class="w-full flex flex-col gap-12">
+              <div class="input-group">
+                <label class="input-label">ИНН организации</label>
+                <input
+                  v-model="newOrg.inn"
+                  type="text"
+                  placeholder="Введите от 10 до 16 символов (буквы или цифры)"
+                  class="input"
+                  @input="handleInnInput"
+                />
+              </div>
+              <div v-if="!isDataFetched" class="flex justify-end">
+                <button
+                  class="btn btn-primary"
+                  :disabled="loading || !isValidInn"
+                  @click="handleSuggestByInn"
+                >
+                  <span v-if="loading" class="btn-spinner"></span>
+                  <span v-else>Далее</span>
+                </button>
+              </div>
+            </div>
 
-              <div class="w-full flex flex-col gap-12">
+            <Transition name="fade-slide">
+              <div v-if="isDataFetched" class="flex flex-col gap-16">
                 <div class="input-group">
-                  <label class="input-label">ИНН организации</label>
+                  <label class="input-label">Сокращенное наименование (для списков)*</label>
                   <input
-                    v-model="newOrg.inn"
+                    v-model="newOrg.jurpersonName"
                     type="text"
-                    placeholder="Введите от 10 до 16 символов (буквы или цифры)"
+                    placeholder="ИП Иванов И.И. или ООО 'КОМПАНИЯ'"
                     class="input"
-                    @input="handleInnInput"
                   />
                 </div>
-                <div v-if="!isDataFetched" class="flex justify-end">
+                <div class="input-group">
+                  <label class="input-label">Полное наименование организации*</label>
+                  <input
+                    v-model="newOrg.jurpersonFullName"
+                    type="text"
+                    placeholder="Индивидуальный предприниматель Иванов Иван Иванович"
+                    class="input"
+                  />
+                </div>
+                <div class="w-full">
                   <button
-                    class="btn btn-primary"
-                    :disabled="loading || !isValidInn"
-                    @click="handleSuggestByInn"
+                    class="btn btn-primary w-full"
+                    :disabled="isCreating"
+                    @click="handleCreateJurperson"
                   >
-                    <span v-if="loading" class="btn-spinner"></span>
-                    <span v-else>Далее</span>
+                    <span v-if="isCreating" class="btn-spinner"></span>
+                    <span v-else>Создать организацию</span>
                   </button>
                 </div>
               </div>
+            </Transition>
+          </div>
+        </Transition>
 
-              <Transition name="fade-slide">
-                <div v-if="isDataFetched" class="flex flex-col gap-16">
-                  <div class="input-group">
-                    <label class="input-label">Сокращенное наименование (для списков)*</label>
-                    <input
-                      v-model="newOrg.jurpersonName"
-                      type="text"
-                      placeholder="ИП Иванов И.И. или ООО 'КОМПАНИЯ'"
-                      class="input"
-                    />
-                  </div>
-                  <div class="input-group">
-                    <label class="input-label">Полное наименование организации*</label>
-                    <input
-                      v-model="newOrg.jurpersonFullName"
-                      type="text"
-                      placeholder="Индивидуальный предприниматель Иванов Иван Иванович"
-                      class="input"
-                    />
-                  </div>
-                  <div class="w-full">
-                    <button
-                      class="btn btn-primary w-full"
-                      :disabled="isCreating"
-                      @click="handleCreateJurperson"
-                    >
-                      <span v-if="isCreating" class="btn-spinner"></span>
-                      <span v-else>Создать организацию</span>
-                    </button>
-                  </div>
-                </div>
-              </Transition>
-            </div>
-          </Transition>
+        <div v-if="jurpersons.length > 0" class="flex flex-col gap-12">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-muted px-4">
+            Ваши организации
+          </h2>
 
-          <div v-if="jurpersons.length > 0" class="flex flex-col gap-12">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-muted px-4">
-              Ваши организации
-            </h2>
+          <div class="flex flex-col gap-12">
+            <div
+              v-for="jp in jurpersons"
+              :key="jp.idJurperson"
+              class="card org-card flex items-center justify-between gap-12"
+              :class="{ 'org-card--active': selectedId === jp.idJurperson }"
+              @click="handleSelectJurperson(jp.idJurperson)"
+            >
+              <div class="flex flex-col gap-4 text-left truncate">
+                <h4 class="text-sm font-semibold truncate">{{ jp.jurpersonName }}</h4>
+                <span class="text-xs text-muted font-mono">
+                  {{ jp.inn ? `ИНН: ${jp.inn}` : 'ИНН не указан' }}
+                </span>
+              </div>
 
-            <div class="flex flex-col gap-12">
-              <div
-                v-for="jp in jurpersons"
-                :key="jp.idJurperson"
-                class="card org-card flex items-center justify-between gap-12"
-                :class="{ 'org-card--active': selectedId === jp.idJurperson }"
-                @click="handleSelectJurperson(jp.idJurperson)"
-              >
-                <div class="flex flex-col gap-4 text-left truncate">
-                  <h4 class="text-sm font-semibold truncate">{{ jp.jurpersonName }}</h4>
-                  <span class="text-xs text-muted font-mono">
-                    {{ jp.inn ? `ИНН: ${jp.inn}` : 'ИНН не указан' }}
-                  </span>
-                </div>
-
-                <div v-if="selectedId === jp.idJurperson" class="shrink-0">
-                  <span class="badge badge--success">Активна</span>
-                </div>
+              <div v-if="selectedId === jp.idJurperson" class="shrink-0">
+                <span class="badge badge--success">Активна</span>
               </div>
             </div>
           </div>
-
-          <div
-            v-if="jurpersons.length === 0 && !showCreateForm"
-            class="card text-center py-32 flex flex-col items-center gap-4"
-          >
-            <p class="text-sm font-bold">У вас нет доступных организаций</p>
-            <p class="text-xs text-muted">
-              Добавьте первую организацию по кнопке выше, чтобы начать работу.
-            </p>
-          </div>
-
-          <footer class="flex justify-center mt-12">
-            <button class="logout-link-text" @click="handleLogout">Выйти из аккаунта</button>
-          </footer>
         </div>
+
+        <div
+          v-if="jurpersons.length === 0 && !showCreateForm"
+          class="card text-center py-32 flex flex-col items-center gap-4"
+        >
+          <p class="text-sm font-bold">У вас нет доступных организаций</p>
+          <p class="text-xs text-muted">
+            Добавьте первую организацию по кнопке выше, чтобы начать работу.
+          </p>
+        </div>
+
+        <footer class="flex justify-center mt-12">
+          <button class="logout-link-text" @click="handleLogout">Выйти из аккаунта</button>
+        </footer>
       </div>
     </div>
-  </MainLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -140,7 +138,6 @@ import { useJurpersons } from '@/composables/useJurpersons'
 import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'
 import { jurpersonService } from '@/api/jurpersonService'
-import MainLayout from '@/components/ui/MainLayout.vue'
 
 const router = useRouter()
 const toast = useToast()

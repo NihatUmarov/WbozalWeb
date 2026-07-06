@@ -1,6 +1,8 @@
+<!-- NamesLabelEditor.vue -->
 <template>
-  <BaseModal
+  <BaseDialog
     :is-open="isOpen"
+    variant="modal"
     max-width="7xl"
     @update:is-open="(val) => emit('update:isOpen', val)"
   >
@@ -47,21 +49,13 @@
           <h3 class="m-0 text-base">Свойства: {{ getElementTitle(selectedElement.field) }}</h3>
 
           <div class="grid-col-2 gap-12">
-            <div class="input-group">
-              <label class="input-label text-xs">Ось X (px)</label>
-              <input type="number" v-model.number="selectedElement.x" class="input" />
-            </div>
-            <div class="input-group">
-              <label class="input-label text-xs">Ось Y (px)</label>
-              <input type="number" v-model.number="selectedElement.y" class="input" />
-            </div>
-            <div class="input-group">
-              <label class="input-label text-xs">Ширина (px)</label>
-              <input type="number" v-model.number="selectedElement.w" class="input" />
-            </div>
-            <div class="input-group">
-              <label class="input-label text-xs">Высота (px)</label>
-              <input type="number" v-model.number="selectedElement.h" class="input" />
+            <div v-for="meta in elementLayoutMeta" :key="meta.key" class="input-group">
+              <label class="input-label text-xs">{{ meta.label }}</label>
+              <input
+                type="number"
+                v-model.number="(selectedElement as Record<string, any>)[meta.key]"
+                class="input"
+              />
             </div>
           </div>
 
@@ -94,10 +88,7 @@
       >
         <div
           class="canvas-wrapper"
-          :style="{
-            width: canvasSize.width + 'px',
-            height: canvasSize.height + 'px',
-          }"
+          :style="{ width: canvasSize.width + 'px', height: canvasSize.height + 'px' }"
         >
           <div
             v-for="(el, idx) in templateData.elements"
@@ -131,15 +122,15 @@
         <span v-else>Сохранить шаблон</span>
       </button>
     </template>
-  </BaseModal>
+  </BaseDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import BaseModal from './BaseModal.vue'
-import { cardsService, type LabelTemplate, type LabelElement } from '@/api/cardsService'
+import BaseDialog from './UnifiedUI.vue'
+import { cardsService } from '@/api/cardsService'
+import type { LabelTemplate, LabelElement } from '@/api/cardsService'
 
-// Расширяем интерфейс товара новыми полями
 export interface CardDetailItemExt {
   cName?: string
   cArt?: string
@@ -164,58 +155,47 @@ const isSaving = ref(false)
 const templateData = ref<LabelTemplate | null>(null)
 const selectedIndex = ref<number | null>(null)
 
+const elementLayoutMeta = [
+  { key: 'x', label: 'Ось X (px)' },
+  { key: 'y', label: 'Ось Y (px)' },
+  { key: 'w', label: 'Ширина (px)' },
+  { key: 'h', label: 'Высота (px)' },
+] as const
+
 const selectedElement = computed((): LabelElement | null => {
   if (selectedIndex.value === null || !templateData.value) return null
   return templateData.value.elements[selectedIndex.value]
 })
 
-// Рассчитываем физический размер холста (коэффициент масштабирования: 1 мм ≈ 8 px)
 const canvasSize = computed(() => {
   const type = templateData.value?.cLabelType || '60x40'
-  if (type === '40x30') return { width: 320, height: 240 }
-  return { width: 480, height: 320 } // 60x40 & 60x40Kiz
+  return type === '40x30' ? { width: 320, height: 240 } : { width: 480, height: 320 }
 })
 
 const loadData = async (defaultType = '60x40') => {
   if (!props.idName) return
   isLoading.value = true
   selectedIndex.value = null
-  try {
-    templateData.value = await cardsService.getLabelTemplate(props.idName, defaultType)
-  } catch (e) {
-    console.error('Ошибка загрузки шаблона', e)
-  } finally {
-    isLoading.value = false
-  }
+  templateData.value = await cardsService.getLabelTemplate(props.idName, defaultType)
 }
 
 const reloadTemplate = () => {
-  if (templateData.value) {
-    loadData(templateData.value.cLabelType)
-  }
+  if (templateData.value) loadData(templateData.value.cLabelType)
 }
 
 const saveTemplate = async () => {
   if (!templateData.value) return
   isSaving.value = true
-  try {
-    await cardsService.saveLabelTemplate({
-      idName: templateData.value.idName,
-      cLabelType: templateData.value.cLabelType,
-      elements: templateData.value.elements,
-    })
-    emit('saved')
-    close()
-  } catch (e) {
-    console.error('Ошибка сохранения', e)
-  } finally {
-    isSaving.value = false
-  }
+  await cardsService.saveLabelTemplate({
+    idName: templateData.value.idName,
+    cLabelType: templateData.value.cLabelType,
+    elements: templateData.value.elements,
+  })
+  emit('saved')
+  close()
 }
 
-const close = () => {
-  emit('update:isOpen', false)
-}
+const close = () => emit('update:isOpen', false)
 
 watch(
   () => props.isOpen,
@@ -224,8 +204,7 @@ watch(
   },
 )
 
-// Человекопонятные названия элементов для интерфейса
-const getElementTitle = (field: string) => {
+const getElementTitle = (field: string): string => {
   const map: Record<string, string> = {
     cName: 'Название товара',
     cArt: 'Артикул',
@@ -237,8 +216,7 @@ const getElementTitle = (field: string) => {
   return map[field] || field
 }
 
-// Получение реальных данных из props, либо fallback на красивые заглушки
-const getMockValue = (field: string) => {
+const getMockValue = (field: string): string => {
   if (props.productInfo) {
     if (field === 'cName') return props.productInfo.cName || 'Без названия'
     if (field === 'cArt') return props.productInfo.cArt || 'Без артикула'
@@ -247,7 +225,6 @@ const getMockValue = (field: string) => {
     if (field === 'Barcode' && props.productInfo.barcodes?.length)
       return props.productInfo.barcodes[0]
   }
-
   const mocks: Record<string, string> = {
     cName: 'Свитер вязаный оверсайз (Тест)',
     cArt: 'ART-999-WMS',
@@ -259,18 +236,16 @@ const getMockValue = (field: string) => {
   return mocks[field] || 'Данные'
 }
 
-const getElementStyles = (el: LabelElement) => {
-  return {
-    left: `${el.x}px`,
-    top: `${el.y}px`,
-    width: `${el.w}px`,
-    height: `${el.h}px`,
-    fontSize: `${el.fontSize}px`,
-    fontWeight: el.isBold ? 'bold' : 'normal',
-    fontFamily: el.type === 'text' ? 'Arial, sans-serif' : 'inherit',
-    lineHeight: '1.1',
-  }
-}
+const getElementStyles = (el: LabelElement) => ({
+  left: `${el.x}px`,
+  top: `${el.y}px`,
+  width: `${el.w}px`,
+  height: `${el.h}px`,
+  fontSize: `${el.fontSize}px`,
+  fontWeight: el.isBold ? 'bold' : 'normal',
+  fontFamily: el.type === 'text' ? 'Arial, sans-serif' : 'inherit',
+  lineHeight: '1.1',
+})
 </script>
 
 <style scoped>
@@ -304,8 +279,6 @@ const getElementStyles = (el: LabelElement) => {
 .properties-box {
   padding: var(--spacing-16);
 }
-
-/* Канвас */
 .preview-panel {
   overflow: auto;
 }
@@ -324,7 +297,7 @@ const getElementStyles = (el: LabelElement) => {
   user-select: none;
   color: black;
   overflow: hidden;
-  word-wrap: break-word; /* Важно для переноса длинных названий */
+  word-wrap: break-word;
 }
 .canvas-element:hover {
   border-color: rgba(79, 70, 229, 0.4);
@@ -333,8 +306,6 @@ const getElementStyles = (el: LabelElement) => {
   border-color: var(--color-primary);
   background: rgba(79, 70, 229, 0.05);
 }
-
-/* Фейковые штрихкоды для превью */
 .mock-barcode .bars {
   background: repeating-linear-gradient(
     90deg,

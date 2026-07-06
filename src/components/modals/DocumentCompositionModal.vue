@@ -80,7 +80,7 @@
 
 <script setup lang="ts">
 import { watch } from 'vue'
-import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseModal from '@/components/ui/UnifiedUI.vue'
 import { useToast } from '@/composables/useToast'
 import type { LocalPosition, UnifiedProductItem } from '@/composables/useExcelImport'
 
