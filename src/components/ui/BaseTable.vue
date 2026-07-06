@@ -1,7 +1,7 @@
 <template>
   <div class="table-container" :style="{ maxHeight: items.length > 0 ? maxHeight : 'auto' }">
     <div v-if="loading" class="table-state text-muted">
-      <div class="table-spinner"></div>
+      <div class="global-spin"></div>
       <p class="text-sm font-medium">{{ loadingText }}</p>
     </div>
 
@@ -15,9 +15,9 @@
         <thead>
           <tr>
             <th
-              v-for="col in columns"
+              v-for="col in dynamicColumns"
               :key="String(col.key)"
-              :style="{ width: col.width, minWidth: col.minWidth || '120px' }"
+              :style="{ width: col.width, minWidth: col.minWidth || '80px' }"
               :class="{ sortable: col.sortable }"
               @click="col.sortable && handleSort(col.key)"
             >
@@ -54,11 +54,44 @@
           <tr
             v-for="(item, index) in filteredAndSortedItems"
             :key="typeof item.id === 'string' || typeof item.id === 'number' ? item.id : index"
-            :class="rowClass ? rowClass(item) : ''"
+            :class="[rowClass ? rowClass(item) : '', { 'row-clickable': 'idName' in item }]"
+            @click="handleRowClick(item, $event)"
           >
-            <td v-for="col in columns" :key="String(col.key)">
+            <td v-for="col in dynamicColumns" :key="String(col.key)">
               <slot :name="`cell(${String(col.key)})`" :item="item" :value="item[col.key]">
-                {{ item[col.key] ?? '—' }}
+                <template v-if="col.key === 'primaryImageURL'">
+                  <div class="table-avatar-container" @click.stop>
+                    <img
+                      v-if="item.primaryImageURL"
+                      :src="String(item.primaryImageURL)"
+                      class="table-product-avatar"
+                      alt="Товар"
+                    />
+                    <div v-else class="table-product-avatar-placeholder">📦</div>
+                  </div>
+                </template>
+
+                <template v-else-if="col.key === 'size'">
+                  <span
+                    v-if="item.size"
+                    class="text-xs font-semibold text-primary bg-secondary border-dark px-6 py-4 rounded-6 uppercase"
+                  >
+                    {{ item.size }}
+                  </span>
+                  <span v-else class="text-muted text-xs font-medium">─</span>
+                </template>
+
+                <template v-else-if="col.key === 'cArt' || col.key === 'cArtWB'">
+                  <span
+                    class="font-mono text-xs font-semibold text-primary bg-secondary border-dark px-6 py-4 rounded-6"
+                  >
+                    {{ item[col.key] ?? '—' }}
+                  </span>
+                </template>
+
+                <template v-else>
+                  {{ item[col.key] ?? '—' }}
+                </template>
               </slot>
             </td>
           </tr>
@@ -67,33 +100,171 @@
     </div>
   </div>
 
-  <Teleport to="body">
-    <div v-if="showExcelModal" class="modal-overlay excel-overlay" @click="showExcelModal = false">
-      <div class="excel-modal-content" @click.stop>
-        <div class="excel-modal-header">
-          <h3>Выгрузка данных в Excel</h3>
+  <BaseModal v-model:isOpen="isSheetOpen" maxWidth="5xl">
+    <template #header>
+      <div v-if="isDetailsLoading" class="flex flex-col gap-4 w-[280px]">
+        <SkeletonLoader variant="title" width="100%" />
+        <SkeletonLoader variant="text" width="50%" />
+      </div>
+      <div v-else-if="details" class="detail-header-info">
+        <h2 class="detail-title">{{ details.cName || 'Карточка товара' }}</h2>
+        <span class="detail-art"
+          >Артикул товара:
+          <strong class="text-primary font-mono">{{ details.cArt || '—' }}</strong></span
+        >
+      </div>
+    </template>
+
+    <div class="card-detail-container">
+      <div v-if="isDetailsLoading" class="detail-main-grid">
+        <div class="gallery-side">
+          <SkeletonLoader variant="rectangular" height="340px" width="100%" />
+          <div class="flex gap-8 mt-12">
+            <SkeletonLoader variant="rounded" height="64px" width="52px" v-for="i in 3" :key="i" />
+          </div>
         </div>
-        <p class="excel-modal-text">
-          В таблице сейчас применены фильтры поиска. Выгрузить данные с учетом фильтрации или
-          сохранить весь список целиком?
-        </p>
-        <div class="excel-modal-actions">
-          <button @click="confirmExport(true)" class="btn btn-primary w-full">
-            Применить фильтры ({{ filteredAndSortedItems.length }} стр.)
-          </button>
-          <button @click="confirmExport(false)" class="btn btn-secondary w-full">
-            Выгрузить всё без фильтров ({{ items.length }} стр.)
-          </button>
-          <button @click="showExcelModal = false" class="excel-btn-cancel">Отмена</button>
+        <div class="flex flex-col gap-16">
+          <SkeletonLoader variant="rectangular" height="64px" />
+          <SkeletonLoader variant="rectangular" height="120px" v-for="i in 2" :key="i" />
+        </div>
+      </div>
+
+      <div v-else-if="details" class="detail-main-grid">
+        <div class="gallery-side">
+          <div class="main-preview-box">
+            <img
+              v-if="activePhoto || details.primaryImageURL"
+              :src="activePhoto || details.primaryImageURL!"
+              class="main-preview-img"
+              alt="Preview"
+            />
+            <div v-else class="no-photo-placeholder">📦 Нет изображений</div>
+          </div>
+          <div v-if="allPhotos.length > 1" class="thumbnails-row">
+            <div
+              v-for="(img, idx) in allPhotos"
+              :key="idx"
+              :class="['thumb-box', { active: activePhoto === img || (!activePhoto && idx === 0) }]"
+              @click="activePhoto = img"
+            >
+              <img :src="img" alt="thumb" />
+            </div>
+          </div>
+        </div>
+
+        <div class="info-side">
+          <div class="stocks-summary-grid">
+            <div class="badge badge--success product-stock-tile">
+              <span class="text-xs opacity-85">Доступный остаток</span>
+              <strong class="text-sm tabular-nums">{{ details.irQuant }} шт.</strong>
+            </div>
+            <div class="badge badge--info product-stock-tile">
+              <span class="text-xs opacity-85">Зарезервировано</span>
+              <strong class="text-sm tabular-nums">{{ details.iBronTask }} шт.</strong>
+            </div>
+            <div class="badge badge--error product-stock-tile">
+              <span class="text-xs opacity-85">Брак / Дефекты</span>
+              <strong class="text-sm tabular-nums">{{ details.defectQuant }} шт.</strong>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3 class="section-heading">Общая информация</h3>
+            <div class="property-list-grid">
+              <div class="property-item">
+                <span class="property-label">Цвет изделия</span
+                ><span class="property-value">{{ details.color || '—' }}</span>
+              </div>
+              <div class="property-item">
+                <span class="property-label">Размерный ряд</span
+                ><span class="property-value font-mono">{{ details.size || '—' }}</span>
+              </div>
+              <div class="property-item">
+                <span class="property-label">Страна производства</span
+                ><span class="property-value">{{ details.country || '—' }}</span>
+              </div>
+              <div class="property-item">
+                <span class="property-label">Системный ID (WMS)</span
+                ><span class="property-value font-mono text-muted">{{ details.idName }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3 class="section-heading">Логистические параметры ед. товара</h3>
+            <div class="property-list-grid grid-col-2">
+              <div class="property-item">
+                <span class="property-label">Длина упаковки</span
+                ><span class="property-value font-mono">{{
+                  details.length ? `${details.length} мм` : '—'
+                }}</span>
+              </div>
+              <div class="property-item">
+                <span class="property-label">Ширина упаковки</span
+                ><span class="property-value font-mono">{{
+                  details.width ? `${details.width} мм` : '—'
+                }}</span>
+              </div>
+              <div class="property-item">
+                <span class="property-label">Высота упаковки</span
+                ><span class="property-value font-mono">{{
+                  details.height ? `${details.height} мм` : '—'
+                }}</span>
+              </div>
+              <div class="property-item">
+                <span class="property-label">Общий объем</span
+                ><span class="property-value font-mono text-primary font-bold">{{
+                  details.volumeLiter ? `${details.volumeLiter} л` : '—'
+                }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3 class="section-heading">Зарегистрированные штрихкоды</h3>
+            <div v-if="details.barcodes && details.barcodes.length" class="barcodes-wrap-list">
+              <span v-for="bc in details.barcodes" :key="bc" class="barcode-badge"
+                ><span class="bc-icon">📋</span> {{ bc }}</span
+              >
+            </div>
+            <div v-else class="no-barcodes-text">Действующие штрихкоды отсутствуют</div>
+          </div>
         </div>
       </div>
     </div>
-  </Teleport>
+  </BaseModal>
+
+  <BaseModal v-model:isOpen="showExcelModal" maxWidth="sm">
+    <template #header>
+      <h3 class="m-0 text-lg font-bold">Выгрузка данных в Excel</h3>
+    </template>
+    <p class="excel-modal-text">
+      В таблице сейчас применены фильтры поиска. Выгрузить данные с учетом фильтрации или сохранить
+      весь список целиком?
+    </p>
+    <template #footer>
+      <div class="flex flex-col gap-8 w-full">
+        <button @click="confirmExport(true)" class="btn btn-primary w-full">
+          Применить фильтры ({{ filteredAndSortedItems.length }} стр.)
+        </button>
+        <button @click="confirmExport(false)" class="btn btn-secondary w-full">
+          Выгрузить всё без фильтров ({{ items.length }} стр.)
+        </button>
+        <button @click="showExcelModal = false" class="btn btn-link text-center pt-4">
+          Отмена
+        </button>
+      </div>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup lang="ts" generic="T extends Record<string, unknown>">
 import { ref, computed } from 'vue'
 import * as XLSX from 'xlsx'
+import { useViewSettings } from '@/composables/useViewSettings'
+import { cardsService, type CardDetailItem } from '@/api/cardsService'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 export interface TableColumn<T> {
   key: keyof T
@@ -124,6 +295,64 @@ const props = withDefaults(
     maxHeight: 'calc(100vh - 290px)',
   },
 )
+
+// Инжектируем наши 4 независимых флага видимости
+const { showImage, showArt, showWbArt, showSize } = useViewSettings()
+
+const isSheetOpen = ref(false)
+const isDetailsLoading = ref(false)
+const details = ref<CardDetailItem | null>(null)
+const activePhoto = ref<string | null>(null)
+
+const allPhotos = computed(() => {
+  if (!details.value) return []
+  const list: string[] = []
+  if (details.value.primaryImageURL) list.push(details.value.primaryImageURL)
+  if (details.value.photos && details.value.photos.length) {
+    details.value.photos.forEach((p) => {
+      if (p && !list.includes(p)) list.push(p)
+    })
+  }
+  return list
+})
+
+const handleRowClick = async (item: T, event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (
+    target.tagName === 'BUTTON' ||
+    target.tagName === 'INPUT' ||
+    target.tagName === 'SELECT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.closest('button') ||
+    target.closest('.btn')
+  )
+    return
+  if ('idName' in item && typeof item.idName === 'number') {
+    details.value = null
+    activePhoto.value = null
+    isSheetOpen.value = true
+    isDetailsLoading.value = true
+    try {
+      details.value = await cardsService.getCardById(item.idName)
+    } catch (err) {
+      console.error('Ошибка при получении деталей карточки:', err)
+      isSheetOpen.value = false
+    } finally {
+      isDetailsLoading.value = false
+    }
+  }
+}
+
+// ЧИСТАЯ ФИЛЬТРАЦИЯ КОЛОНОК БЕЗ ЗАМЕЩЕНИЙ
+const dynamicColumns = computed(() => {
+  return props.columns.filter((col) => {
+    if (col.key === 'primaryImageURL' && !showImage.value) return false
+    if (col.key === 'cArt' && !showArt.value) return false
+    if (col.key === 'cArtWB' && !showWbArt.value) return false
+    if (col.key === 'size' && !showSize.value) return false
+    return true
+  })
+})
 
 const currentSort = ref<{ key: string | null; order: 'asc' | 'desc' }>({ key: null, order: 'asc' })
 const filters = ref<Record<string, string>>({})
@@ -163,9 +392,9 @@ const filteredAndSortedItems = computed(() => {
   return result
 })
 
-const hasActiveFilters = computed(() => {
-  return Object.values(filters.value).some((val) => val && val.trim() !== '')
-})
+const hasActiveFilters = computed(() =>
+  Object.values(filters.value).some((val) => val && val.trim() !== ''),
+)
 
 const triggerExcelExport = (fileName: string) => {
   currentExportFileName = fileName
@@ -213,188 +442,3 @@ const generateExcel = (useFilters: boolean) => {
 
 defineExpose({ hasActiveFilters, filteredAndSortedItems, triggerExcelExport })
 </script>
-
-<style scoped>
-.table-container {
-  background: var(--color-surface);
-  border-radius: var(--radius-12);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.table-responsive {
-  width: 100%;
-  overflow: auto;
-  scrollbar-width: thin;
-}
-.minimal-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 13px;
-}
-.minimal-table th {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--color-background-secondary);
-  padding: var(--spacing-8) var(--spacing-16);
-  color: var(--color-text-secondary);
-  font-weight: 600;
-  border-bottom: 1px solid var(--color-border-dark);
-  text-align: left;
-}
-.minimal-table td {
-  padding: var(--spacing-8) var(--spacing-16);
-  color: var(--color-text-primary);
-  border-bottom: 1px solid var(--color-border-dark);
-  vertical-align: middle;
-}
-.minimal-table tr:last-child td {
-  border-bottom: none;
-}
-.minimal-table tbody tr:hover td {
-  background: var(--color-background-secondary);
-}
-
-.th-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-8);
-}
-.sortable {
-  cursor: pointer;
-  user-select: none;
-}
-.sort-arrows {
-  display: inline-flex;
-  flex-direction: column;
-  font-size: 9px;
-  color: var(--color-text-tertiary);
-  line-height: 1;
-}
-.sort-arrows .active {
-  color: var(--color-primary);
-}
-.filter-box {
-  margin-top: var(--spacing-4);
-}
-.table-input {
-  padding: var(--spacing-4) var(--spacing-8);
-  font-size: 12px;
-  border-radius: var(--radius-6);
-}
-
-.table-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-40) var(--spacing-20);
-  gap: var(--spacing-12);
-}
-.empty-icon {
-  font-size: 32px;
-}
-.table-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--color-border-dark);
-  border-top-color: var(--color-primary);
-  border-radius: var(--radius-full);
-  animation: table-spin 0.8s linear infinite;
-}
-@keyframes table-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Навесили абсолютный z-index, чтобы модалка встала поверх шторок и оверлеев */
-.excel-overlay {
-  z-index: 100000 !important;
-}
-
-.excel-modal-content {
-  background: var(--color-surface);
-  padding: var(--spacing-24);
-  border-radius: var(--radius-12);
-  box-shadow: var(--shadow-md);
-  max-width: 400px;
-  width: 100%;
-  border: 1px solid var(--color-border);
-}
-.excel-modal-text {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  margin: var(--spacing-12) 0 var(--spacing-20);
-  line-height: 1.5;
-}
-.excel-modal-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-8);
-}
-.excel-btn-cancel {
-  background: transparent;
-  border: none;
-  padding: 10px;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  font-weight: 500;
-}
-.excel-btn-cancel:hover {
-  color: var(--color-text-primary);
-}
-/* Стили для заднего фона модального окна (Overlay) */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5); /* Полупрозрачный черный фон */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999; /* Чтобы модалка была поверх WMS интерфейса и ТСД таблиц */
-}
-
-/* Корректировка для контента, чтобы он не сливался */
-.excel-modal-content {
-  background: var(--color-surface);
-  padding: var(--spacing-24);
-  border-radius: var(--radius-12);
-  box-shadow: var(--shadow-md);
-  max-width: 400px;
-  width: 100%;
-  border: 1px solid var(--color-border);
-  z-index: 10000;
-}
-:global(.modal-overlay) {
-  position: fixed;
-  inset: 0; /* Заменяет top:0; left:0; width:100vw; height:100vh; */
-  background-color: rgba(15, 23, 42, 0.4); /* Стильный темно-синий с прозрачностью */
-  backdrop-filter: blur(8px); /* Если переменная --glass-blur не подтянется, жесткий блюр спасет */
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9998;
-}
-
-:global(.excel-modal-content) {
-  background: var(--color-surface);
-  padding: var(--spacing-24);
-  border-radius: var(--radius-12);
-  box-shadow: var(--shadow-md);
-  max-width: 400px;
-  width: 100%;
-  border: 1px solid var(--color-border);
-}
-</style>

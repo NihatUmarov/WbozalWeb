@@ -115,7 +115,7 @@
           </div>
 
           <div
-            v-else-if="!showCreateForm"
+            v-if="jurpersons.length === 0 && !showCreateForm"
             class="card text-center py-32 flex flex-col items-center gap-4"
           >
             <p class="text-sm font-bold">У вас нет доступных организаций</p>
@@ -130,7 +130,6 @@
         </div>
       </div>
     </div>
-    <TheToast ref="toastRef" />
   </MainLayout>
 </template>
 
@@ -139,136 +138,92 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useJurpersons } from '@/composables/useJurpersons'
 import { useAsync } from '@/composables/useAsync'
+import { useToast } from '@/composables/useToast'
 import { jurpersonService } from '@/api/jurpersonService'
-
 import MainLayout from '@/components/ui/MainLayout.vue'
-import TheToast from '@/components/ui/TheToast.vue'
 
 const router = useRouter()
-const toastRef = ref<InstanceType<typeof TheToast> | null>(null)
-const showCreateForm = ref(false)
-const isDataFetched = ref(false)
+const toast = useToast()
+const showCreateForm = ref<boolean>(false)
+const isDataFetched = ref<boolean>(false)
 
-const { jurpersons, selectedId, isStateLoading, load, select } = useJurpersons(toastRef)
+const { jurpersons, selectedId, isStateLoading, load, select } = useJurpersons(undefined)
 const { loading, run } = useAsync()
 const { loading: isCreating, run: runCreate } = useAsync()
 
 const newOrg = ref({ inn: '', jurpersonName: '', jurpersonFullName: '' })
 
-// ТЕПЕРЬ ТУТ ПРОВЕРЯЕТСЯ ТОЛЬКО ДЛИНА СТРОКИ (ОТ 10 ДО 16 СИМВОЛОВ), ЛЮБЫЕ ЗНАКИ РАЗРЕШЕНЫ
-const isValidInn = computed(() => {
+const isValidInn = computed<boolean>(() => {
   const len = newOrg.value.inn.trim().length
   return len >= 10 && len <= 20
 })
 
-const toggleCreateForm = () => {
+const toggleCreateForm = (): void => {
   showCreateForm.value = !showCreateForm.value
   if (!showCreateForm.value) resetCreateForm()
 }
 
-const resetCreateForm = () => {
+const resetCreateForm = (): void => {
   newOrg.value = { inn: '', jurpersonName: '', jurpersonFullName: '' }
   isDataFetched.value = false
 }
 
-const handleInnInput = () => {
+const handleInnInput = (): void => {
   if (isDataFetched.value) resetCreateForm()
 }
 
-const handleSuggestByInn = () => {
+const handleSuggestByInn = (): void => {
   if (!isValidInn.value) return
   run(
     async () => {
-      // Отправляем ИНН как есть, метод .trim() уберет случайные пробелы по краям
       const data = await jurpersonService.suggestByInn(newOrg.value.inn.trim())
       newOrg.value.jurpersonName = data.jurpersonName || ''
       newOrg.value.jurpersonFullName = data.jurpersonFullName || ''
       isDataFetched.value = true
 
       if (!newOrg.value.jurpersonName && !newOrg.value.jurpersonFullName) {
-        toastRef.value?.show('Организация не найдена. Заполните поля вручную', 'warning')
+        toast.warning('Организация не найдена. Заполните поля вручную')
       } else {
-        toastRef.value?.show('Данные по ИНН успешно найдены!', 'success')
+        toast.success('Данные по ИНН успешно найдены!')
       }
     },
-    { toast: toastRef.value },
+    { toast },
   )
 }
 
-const handleCreateJurperson = () => {
+const handleCreateJurperson = (): void => {
   if (!newOrg.value.jurpersonName.trim() || !newOrg.value.jurpersonFullName.trim()) {
-    return toastRef.value?.show('Заполните обязательные поля наименований', 'error')
+    return toast.error('Заполните обязательные поля наименований')
   }
 
   runCreate(
     async () => {
-      // ИНН сохраняется в базу с буквами
       const res = await jurpersonService.createJurperson({
         inn: newOrg.value.inn.trim(),
         jurpersonName: newOrg.value.jurpersonName.trim(),
         jurpersonFullName: newOrg.value.jurpersonFullName.trim(),
       })
-      toastRef.value?.show(res.message || 'Организация успешно создана!', 'success')
+      toast.success(res.message || 'Организация успешно создана!')
       resetCreateForm()
       showCreateForm.value = false
       await load()
     },
-    { toast: toastRef.value },
+    { toast },
   )
 }
 
-const handleSelectJurperson = async (id: number) => {
+const handleSelectJurperson = async (id: number): Promise<void> => {
   const success = await select(id)
   if (success) {
-    toastRef.value?.show('Организация успешно выбрана!', 'success')
+    toast.success('Организация успешно выбрана!')
     setTimeout(() => router.push('/'), 500)
   }
 }
 
-const handleLogout = () => {
+const handleLogout = (): void => {
   localStorage.clear()
   window.location.href = '/login'
 }
 
 onMounted(load)
 </script>
-
-<style scoped>
-.org-card {
-  cursor: pointer;
-  transition: all var(--transition-base);
-  border: 1px solid var(--color-border-dark);
-}
-.org-card:hover {
-  border-color: var(--color-primary);
-  transform: translateY(-1px);
-}
-.org-card--active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-subtle);
-}
-
-.logout-link-text {
-  background: none;
-  border: none;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: var(--spacing-8);
-  transition: color var(--transition-fast);
-}
-.logout-link-text:hover {
-  color: var(--color-error-text);
-}
-
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all var(--transition-fast) ease-out;
-}
-.fade-slide-enter-from,
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-</style>

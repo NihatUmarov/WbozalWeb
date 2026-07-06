@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios'
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import type { RefreshTokenResponse } from './types'
 
-const BASE_URL = 'https://api.wbozal.ru'
+const BASE_URL = 'http://localhost:5123' // 'https://api.wbozal.ru'
 
 const httpClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -38,13 +38,11 @@ function handleLogout() {
   localStorage.removeItem('user_role')
   localStorage.removeItem('selected_jurperson_id')
 
-  // КРИТИЧЕСКИ ВАЖНО: Если мы уже на странице логина, не редиректим и не рефрешим страницу!
   if (window.location.pathname !== '/login') {
     window.location.href = '/login'
   }
 }
 
-// 1. ПЕРЕХВАТЧИК ЗАПРОСОВ (Request)
 httpClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('access_token')
@@ -62,7 +60,6 @@ httpClient.interceptors.request.use(
   (error) => Promise.reject(error),
 )
 
-// 2. ПЕРЕХВАТЧИК ОТВЕТОВ (Response) — ДОЛЖЕН БЫТЬ ПЕРЕД EXPORT DEFAULT
 httpClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -72,14 +69,13 @@ httpClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // Если 401 упал сам запрос рефреша — мгновенный логаут без лишних кругов
     if (originalRequest.url?.includes('/api/auth/refresh')) {
       handleLogout()
       return Promise.reject(error)
     }
 
     if (originalRequest._retry) {
-      handleLogout() // Если повторный запрос ОПЯТЬ выдал 401 — тушим свет
+      handleLogout()
       return Promise.reject(error)
     }
 
@@ -103,15 +99,17 @@ httpClient.interceptors.response.use(
     const refreshToken = localStorage.getItem('refresh_token') || ''
 
     return new Promise((resolve, reject) => {
+      // Бэкенд принимает параметры через строку запроса [FromQuery] accessToken, [FromQuery] refreshToken
       axios
-        .post<RefreshTokenResponse>(`${BASE_URL}/api/auth/refresh`, {
-          t_tok: accessToken,
-          rf_tok: refreshToken,
+        .post<RefreshTokenResponse>(`${BASE_URL}/api/auth/refresh`, null, {
+          params: {
+            accessToken,
+            refreshToken,
+          },
         })
         .then(({ data }) => {
           localStorage.setItem('access_token', data.tok)
           localStorage.setItem('refresh_token', data.rf_tok)
-          localStorage.setItem('user_role', data.role)
 
           processQueue(null, data.tok)
 

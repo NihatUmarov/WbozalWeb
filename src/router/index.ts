@@ -1,15 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
-import ProfileView from '../views/ProfileView.vue'
-import StockDocumentsView from '../views/StockDocument/StockDocumentsView.vue'
+import ProfileView from '../views/Profile/ProfileView.vue'
+import StockDocumentsView from '../views/Invoice/InvoiceView.vue'
 import RemainsList from '../views/RemainsList.vue'
 import CardsView from '../views/CardsView.vue'
 import JurpersonSelectView from '../views/JurpersonSelectView.vue'
+import { usePermissions } from '../services/permissionsStore' // Импортируем наше хранилище прав
 
 const routes = [
   {
     path: '/',
-    redirect: '/documents', // Изменено здесь
+    redirect: '/documents',
   },
   {
     path: '/login',
@@ -20,25 +21,25 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: ProfileView,
-    meta: { requiresAuth: true, requiresJurperson: true },
+    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'profile' }, // Проверяем флаг profile
   },
   {
     path: '/documents',
     name: 'StockDocuments',
     component: StockDocumentsView,
-    meta: { requiresAuth: true, requiresJurperson: true },
+    meta: { requiresAuth: true, requiresJurperson: true }, // Сюда пускаем всех, у кого есть организация
   },
   {
     path: '/remains',
     name: 'RemainsList',
     component: RemainsList,
-    meta: { requiresAuth: true, requiresJurperson: true },
+    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'remains' }, // Проверяем флаг remains
   },
   {
     path: '/cards',
     name: 'CardsList',
     component: CardsView,
-    meta: { requiresAuth: true, requiresJurperson: true },
+    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'cards' }, // Проверяем флаг cards
   },
   {
     path: '/select-jurperson',
@@ -56,7 +57,8 @@ const router = createRouter({
   },
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  // Добавили async
   const isAuthenticated = !!localStorage.getItem('access_token')
 
   const getJurpersonIdFromToken = () => {
@@ -80,13 +82,27 @@ router.beforeEach((to, from, next) => {
   }
 
   if (to.path === '/login' && isAuthenticated) {
-    next('/documents') // Изменено здесь
+    next('/documents')
     return
   }
 
   if (to.meta.requiresJurperson && isAuthenticated && !hasJurperson) {
     next('/select-jurperson')
     return
+  }
+
+  if (isAuthenticated && hasJurperson) {
+    const { permissions, isLoaded, fetchPermissions } = usePermissions()
+    if (!isLoaded.value) {
+      await fetchPermissions()
+    }
+    const requiredPermission = to.meta.requiredPermission as
+      | keyof typeof permissions.value
+      | undefined
+    if (requiredPermission && !permissions.value[requiredPermission]) {
+      next('/documents')
+      return
+    }
   }
 
   next()

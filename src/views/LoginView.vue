@@ -103,13 +103,12 @@
       </div>
     </div>
   </div>
-  <TheToast ref="toastRef" />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import TheToast from '@/components/ui/TheToast.vue'
+import { useToast } from '@/composables/useToast'
 import { authService } from '../api/authService'
 import { useAsync } from '@/composables/useAsync'
 
@@ -118,70 +117,75 @@ import whatsappIcon from '@/components/icons/whatsapp.svg'
 import supportIcon from '@/components/icons/max.svg'
 
 const router = useRouter()
-const toastRef = ref<InstanceType<typeof TheToast> | null>(null)
-const step = ref(1)
-const email = ref('')
-const otp = ref(['', '', '', '', '', ''])
+const toast = useToast()
+const step = ref<number>(1)
+const email = ref<string>('')
+const otp = ref<string[]>(['', '', '', '', '', ''])
 const otpInputs = ref<HTMLInputElement[]>([])
 
 const { loading, run } = useAsync()
-const isOtpComplete = computed(() => otp.value.every((v) => v.length === 1))
+const isOtpComplete = computed<boolean>(() => otp.value.every((v) => v.length === 1))
 
 const socialLinks = [
   { title: 'Telegram', url: 'https://t.me/managerwbozal', icon: telegramIcon },
-  { title: 'WhatsApp', url: 'https://wa.me/your_number', icon: whatsappIcon },
-  { title: 'Support', url: '#', icon: supportIcon },
+  { title: 'WhatsApp', url: 'https://wa.me/message/4AASDN7XCFH3M1', icon: whatsappIcon },
+  {
+    title: 'Support',
+    url: 'https://max.ru/u/f9LHodD0cOKODq-bFKJhcSQRZs7YbT95mHmBGqvzE2N5D4eCQYBDay8jP_8',
+    icon: supportIcon,
+  },
 ]
 
-const handleSendOtp = () => {
-  if (!email.value.trim()) return toastRef.value?.show('Пожалуйста, введите email', 'warning')
+const handleSendOtp = (): void => {
+  if (!email.value.trim()) return toast.warning('Пожалуйста, введите email')
   run(
     async () => {
       await authService.sendOtp(email.value.trim())
       step.value = 2
-      // Очищаем старый код при повторном/новом запросе
       otp.value = ['', '', '', '', '', '']
       nextTick(() => otpInputs.value[0]?.focus())
     },
-    { toast: toastRef.value },
+    { toast },
   )
 }
 
-const handleLogin = () => {
+const handleLogin = (): void => {
   const finalCode = otp.value.join('')
   if (finalCode.length < 6) return
   run(
     async () => {
       await authService.verifyOtp(email.value.trim(), finalCode)
-      toastRef.value?.show('Успешный вход!', 'success')
+      toast.success('Успешный вход!')
       router.push('/')
     },
-    { toast: toastRef.value },
+    { toast },
   )
 }
 
-const handleOtpInput = (e: Event, index: number) => {
+const handleOtpInput = (e: Event, index: number): void => {
   const val = (e.target as HTMLInputElement).value
-  if (!/^\d*$/.test(val)) return (otp.value[index] = '')
+  if (!/^\d*$/.test(val)) {
+    otp.value[index] = ''
+    return
+  }
 
   if (val && index < 5) {
     otpInputs.value[index + 1].focus()
   }
 
-  // Автоматический сабмит, если ввели последнюю цифру и код собран
   if (isOtpComplete.value) {
     handleLogin()
   }
 }
 
-const handleOtpKeyDown = (e: KeyboardEvent, index: number) => {
+const handleOtpKeyDown = (e: KeyboardEvent, index: number): void => {
   if (e.key === 'Backspace' && !otp.value[index] && index > 0) {
     otp.value[index - 1] = ''
     otpInputs.value[index - 1].focus()
   }
 }
 
-const handleOtpPaste = (e: ClipboardEvent) => {
+const handleOtpPaste = (e: ClipboardEvent): void => {
   e.preventDefault()
   const pastedData = e.clipboardData?.getData('text').slice(0, 6).trim() || ''
   if (!/^\d+$/.test(pastedData)) return
@@ -198,189 +202,3 @@ const handleOtpPaste = (e: ClipboardEvent) => {
   }
 }
 </script>
-
-<style scoped>
-.auth-page {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: var(--spacing-24);
-}
-.auth-wrapper {
-  display: flex;
-  width: 100%;
-  max-width: 1000px;
-  min-height: 600px;
-  border-radius: var(--radius-12);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--color-border);
-}
-.auth-sidebar {
-  flex: 1;
-  background: #0f172a;
-  padding: 60px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  color: white;
-}
-.logo-text {
-  font-size: 42px;
-  font-weight: 800;
-  letter-spacing: -1.5px;
-  margin: 0;
-  color: #fff;
-}
-.logo-text .accent {
-  color: var(--color-primary);
-}
-.logo-line {
-  width: 44px;
-  height: 5px;
-  background: var(--color-primary);
-  margin-top: 8px;
-  border-radius: var(--radius-full);
-}
-.sidebar-info h3 {
-  font-size: 24px;
-  margin-bottom: 16px;
-  font-weight: 700;
-}
-.sidebar-info p {
-  font-size: 16px;
-  line-height: 1.6;
-  color: #94a3b8;
-}
-
-.social-links-block {
-  display: flex;
-  gap: var(--spacing-12);
-}
-.social-icon-btn {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all var(--transition-base);
-}
-.social-icon-btn:hover {
-  background: var(--color-primary);
-  transform: translateY(-2px);
-}
-.svg-icon-img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-.auth-form-container {
-  flex: 1.3;
-  padding: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface);
-}
-.step-box {
-  width: 100%;
-  max-width: 400px;
-}
-.form-header h2 {
-  font-size: 36px;
-  font-weight: 800;
-  margin-bottom: 12px;
-}
-
-.otp-container {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: var(--spacing-12);
-}
-.otp-field {
-  width: 100%;
-  height: 60px;
-  text-align: center;
-  font-size: 24px;
-  font-weight: 700;
-  border: 1px solid var(--color-border-dark);
-  border-radius: var(--radius-12);
-  background: var(--color-background-secondary);
-  color: var(--color-text-primary);
-  transition: all var(--transition-fast);
-  outline: none;
-}
-.otp-field:focus {
-  border-color: var(--color-primary);
-  background: var(--color-surface);
-  box-shadow: 0 0 0 4px var(--color-primary-subtle);
-}
-.otp-field.filled {
-  border-color: var(--color-text-tertiary);
-  background: var(--color-surface);
-}
-
-.back-link-btn {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  padding: 0 0 var(--spacing-8) 0;
-}
-.resend-text {
-  text-align: center;
-  color: var(--color-text-secondary);
-  margin-top: var(--spacing-4);
-}
-.resend-btn {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-weight: 600;
-  cursor: pointer;
-}
-.resend-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: all var(--transition-fast);
-}
-.fade-enter-from {
-  opacity: 0;
-  transform: translateX(10px);
-}
-.fade-leave-to {
-  opacity: 0;
-  transform: translateX(-10px);
-}
-
-@media (max-width: 850px) {
-  .auth-wrapper {
-    flex-direction: column;
-    max-width: 500px;
-    min-height: auto;
-  }
-  .auth-sidebar,
-  .auth-form-container {
-    padding: 40px;
-  }
-  .otp-field {
-    height: 50px;
-    font-size: 20px;
-  }
-}
-</style>

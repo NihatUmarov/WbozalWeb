@@ -42,7 +42,6 @@ export function useJurpersons(toastRef?: Ref<ToastInstance | null>) {
       if (res?.tok && res?.rf_tok) {
         localStorage.setItem('access_token', res.tok)
         localStorage.setItem('refresh_token', res.rf_tok)
-        if (res.role) localStorage.setItem('user_role', res.role)
       }
 
       localStorage.setItem('selected_jurperson_id', id.toString())

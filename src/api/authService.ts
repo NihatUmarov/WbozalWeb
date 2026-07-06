@@ -1,37 +1,43 @@
 import httpClient from './httpClient'
-import type {
-  SendOtpRequest,
-  SendOtpResponse,
-  VerifyOtpRequest,
-  LoginResponse,
-  SwitchProfileResponse,
-} from './types'
+import type { LoginResponse } from './types'
 
 export const authService = {
-  async sendOtp(email: string): Promise<SendOtpResponse> {
-    const { data } = await httpClient.post<SendOtpResponse>('/api/auth/email_send_otp', {
-      em: email,
-    } as SendOtpRequest)
+  async sendOtp(email: string): Promise<{ msg: string }> {
+    // Бэкенд ждет [FromQuery] string email, передаем через params
+    const { data } = await httpClient.post<{ msg: string }>('/api/auth/email_send_otp', null, {
+      params: { email },
+    })
     return data
   },
 
   async verifyOtp(email: string, otp: string): Promise<LoginResponse> {
-    const { data } = await httpClient.post<LoginResponse>('/api/auth/email_verify_otp', {
-      em: email,
-      otp,
-    } as VerifyOtpRequest)
+    // Бэкенд ждет [FromQuery] string email, [FromQuery] string otp
+    const { data } = await httpClient.post<LoginResponse>('/api/auth/email_verify_otp', null, {
+      params: { email, otp },
+    })
 
     localStorage.setItem('access_token', data.tok)
     localStorage.setItem('refresh_token', data.rf_tok)
-    localStorage.setItem('user_role', data.role)
 
     return data
   },
 
-  async switchProfile(jid: number | null): Promise<SwitchProfileResponse> {
-    const { data } = await httpClient.post<SwitchProfileResponse>('/api/auth/switch_profile', {
-      jid,
-    })
+  async switchProfile(
+    targetJurpersonId: number | null,
+  ): Promise<{ message: string; tok: string; rf_tok: string }> {
+    const currentRefreshToken = localStorage.getItem('refresh_token') || ''
+
+    // Бэкенд ждет [FromQuery] string refreshToken, [FromQuery] int? targetJurpersonId
+    const { data } = await httpClient.post<{ message: string; tok: string; rf_tok: string }>(
+      '/api/auth/switch_profile',
+      null,
+      {
+        params: {
+          refreshToken: currentRefreshToken,
+          targetJurpersonId,
+        },
+      },
+    )
 
     if (data.tok && data.rf_tok) {
       localStorage.setItem('access_token', data.tok)

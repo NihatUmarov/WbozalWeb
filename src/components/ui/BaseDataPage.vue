@@ -13,7 +13,7 @@
             @click="handleExportClick"
           >
             <img src="@/components/icons/office-exel.svg" alt="Excel" class="excel-icon-img" />
-            <span>Экспорт</span>
+            <span>Выгрузить в Excel</span>
           </button>
 
           <slot name="header-actions"></slot>
@@ -89,32 +89,21 @@ const props = withDefaults(
   },
 )
 
-defineEmits<{
-  tabChange: [value: string | number]
-}>()
+defineEmits<{ tabChange: [value: string | number] }>()
 
-// Описываем форму экспортируемых методов таблицы
 interface TableInstance {
   triggerExcelExport: (fileName: string) => void
   filteredAndSortedItems: unknown[]
   hasActiveFilters: boolean
 }
 
-// Переменная для хранения ссылки на дочерний компонент таблицы
 const tableRef = ref<TableInstance | null>(null)
 
-// Локальный метод для обработки клика
 const handleExportClick = () => {
-  console.log('Клик по кнопке экспорт зафиксирован!')
-  console.log('Текущий инстанс таблицы в ref:', tableRef.value)
-
   if (tableRef.value && typeof tableRef.value.triggerExcelExport === 'function') {
     tableRef.value.triggerExcelExport(props.title)
   } else {
-    console.error(
-      'Критическая ошибка: метод triggerExcelExport не найден в tableRef! Проверь defineExpose в BaseTable.vue',
-    )
-    // Если по какой-то причине реф не связался, выведи нативный алерт, чтобы понять это сразу в браузере:
+    console.error('Критическая ошибка: метод triggerExcelExport не найден в tableRef!')
     alert('Ошибка инициализации таблицы. Открой консоль разработчика (F12)')
   }
 }
@@ -122,58 +111,3 @@ const handleExportClick = () => {
 const slots = defineSlots()
 const hasHeader = computed(() => props.hasHeader || !!slots['header-actions'])
 </script>
-
-<style scoped>
-.data-page {
-  width: 100%;
-}
-.page-header {
-  padding: var(--spacing-16) var(--spacing-24);
-}
-
-.excel-icon-img {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-  display: block;
-  margin-right: 6px;
-}
-
-.page-tabs {
-  display: flex;
-  gap: var(--spacing-16);
-  border-bottom: 1px solid var(--color-border);
-  overflow-x: auto;
-}
-.tab-btn {
-  background: transparent;
-  border: none;
-  padding: var(--spacing-12) var(--spacing-4);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: color var(--transition-fast);
-  position: relative;
-  white-space: nowrap;
-}
-.tab-btn:hover {
-  color: var(--color-text-primary);
-}
-.tab-btn--active {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-.tab-btn--active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background-color: var(--color-primary);
-}
-.tab-icon {
-  margin-right: var(--spacing-8);
-}
-</style>

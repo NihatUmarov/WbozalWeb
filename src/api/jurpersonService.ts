@@ -7,6 +7,8 @@ import type {
   CreateJurpersonRequest,
   CreateJurpersonResponse,
   SuggestByInnResponse,
+  MarketplaceTokenResponse,
+  SaveMarketplaceTokenRequest,
 } from './types'
 
 export const jurpersonService = {
@@ -26,7 +28,7 @@ export const jurpersonService = {
   },
 
   async getJurpersons(): Promise<GetJurpersonsResponse> {
-    const { data } = await httpClient.post<GetJurpersonsResponse>('/api/jurperson/get_jurpersons')
+    const { data } = await httpClient.get<GetJurpersonsResponse>('/api/jurperson/get_jurpersons')
     return data
   },
 
@@ -40,6 +42,26 @@ export const jurpersonService = {
   async createJurperson(payload: CreateJurpersonRequest): Promise<CreateJurpersonResponse> {
     const { data } = await httpClient.post<CreateJurpersonResponse>(
       '/api/jurperson/create_jurperson',
+      payload,
+    )
+    return data
+  },
+
+  async getMarketplaceTokenByType(
+    marketplace: 'WB' | 'OZ',
+  ): Promise<MarketplaceTokenResponse | null> {
+    // Бэкенд ждет [FromQuery] string marketplace
+    const { data } = await httpClient.post<MarketplaceTokenResponse | null>(
+      '/api/jurperson/get_marketplace_token_by_type',
+      null,
+      { params: { marketplace } },
+    )
+    return data
+  },
+
+  async saveMarketplaceToken(payload: SaveMarketplaceTokenRequest): Promise<{ message: string }> {
+    const { data } = await httpClient.post<{ message: string }>(
+      '/api/jurperson/save_marketplace_token',
       payload,
     )
     return data
