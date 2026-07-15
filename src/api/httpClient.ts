@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios'
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import type { RefreshTokenResponse } from './types'
 
-const BASE_URL = 'https://api.wbozal.ru'
+const BASE_URL = 'https://api.wbozal.ru' //'http://127.0.0.1:5123'
 
 const httpClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,

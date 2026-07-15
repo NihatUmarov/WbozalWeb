@@ -20,11 +20,12 @@ export interface LocalPosition {
   idName: number
   barcode: string
   qty: number
+  name: string
   cArt: string
   size: string | null
-  name: string
   isDefect?: boolean
   primaryImageURL?: string | null
+  expirationDate?: string | null
 }
 
 export interface ImportErrorRecord {

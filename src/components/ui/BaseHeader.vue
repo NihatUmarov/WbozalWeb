@@ -101,6 +101,7 @@ const menuItems = [
   { label: 'Остатки', icon: Package, to: '/remains', permission: 'remains' as const },
   { label: 'Накладные', icon: FileText, to: '/documents', permission: 'invoice' as const },
   { label: 'Карточки', icon: CreditCard, to: '/cards', permission: 'cards' as const },
+  { label: 'Интеграции', icon: Building2, to: '/marketplace-links', permission: 'cards' as const },
   { label: 'Профиль', icon: User, to: '/profile', permission: 'profile' as const },
 ]
 

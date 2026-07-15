@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :is-open="isOpen" maxWidth="2xl" @update:is-open="close">
+  <BaseModal :is-open="isOpen" maxWidth="4xl" @update:is-open="close">
     <template #header>
       <div class="flex items-center gap-12">
         <span class="badge badge--info">Состав</span>
@@ -15,7 +15,8 @@
           <tr class="bg-secondary text-left border-b text-muted text-xs">
             <th class="p-12">Товар</th>
             <th class="p-12">Штрихкод</th>
-            <th class="p-12" width="180">Количество</th>
+            <th class="p-12" width="160">Срок годности</th>
+            <th class="p-12" width="140">Количество</th>
             <th class="p-12" width="50"></th>
           </tr>
         </thead>
@@ -24,7 +25,7 @@
             <td class="p-12">
               <div class="flex flex-col min-w-0 gap-4 items-start">
                 <span
-                  class="text-sm font-semibold text-primary truncate max-w-md"
+                  class="text-sm font-semibold text-primary truncate max-w-sm"
                   :title="item.name"
                 >
                   {{ item.name }}
@@ -47,6 +48,15 @@
               >
                 {{ item.barcode }}
               </span>
+            </td>
+            <td class="p-12">
+              <input
+                type="date"
+                v-model="item.expirationDate"
+                class="input text-xs"
+                style="height: 28px; padding: 0 4px; width: 135px"
+                @change="syncExpirationDates(item)"
+              />
             </td>
             <td class="p-12">
               <div class="flex items-center gap-8">
@@ -106,6 +116,18 @@ const removeItem = (index: number) => {
   emit('update:items', updated)
 }
 
+// СИНХРОНИЗАЦИЯ ДАТ: Если у одного ШК меняют дату, прокидываем её всем строкам с этим же ШК
+const syncExpirationDates = (changedItem: LocalPosition) => {
+  props.items.forEach((item) => {
+    if (
+      item.barcode === changedItem.barcode &&
+      item.expirationDate !== changedItem.expirationDate
+    ) {
+      item.expirationDate = changedItem.expirationDate
+    }
+  })
+}
+
 const validateQty = (item: LocalPosition) => {
   if (item.qty < 1 || !item.qty) item.qty = 1
 
@@ -122,6 +144,23 @@ const validateQty = (item: LocalPosition) => {
     }
   }
 }
+
+// На всякий случай добавим глубокий watch, если массив подменяется извне excel-импортом
+watch(
+  () => props.items,
+  (newItems) => {
+    if (!newItems) return
+    // Пробегаемся и выравниваем даты, если вдруг импортировалось разношёрстно
+    newItems.forEach((item) => {
+      newItems.forEach((target) => {
+        if (target.barcode === item.barcode && target.expirationDate !== item.expirationDate) {
+          target.expirationDate = item.expirationDate
+        }
+      })
+    })
+  },
+  { deep: true },
+)
 
 watch(
   () => props.items.length,

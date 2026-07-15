@@ -5,7 +5,8 @@ import StockDocumentsView from '../views/Invoice/InvoiceView.vue'
 import RemainsList from '../views/RemainsList.vue'
 import CardsView from '../views/CardsView.vue'
 import JurpersonSelectView from '../views/JurpersonSelectView.vue'
-import { adminService, type UserPermissionsResponse } from '../api/adminService' // Импортируем наш новый единый сервис
+import MarketplaceLinks from '../views/MarketplaceLinks.vue' // <-- НОВЫЙ ИМПОРТ НАШЕЙ СТРАНИЦЫ ИНТЕГРАЦИЙ
+import { adminService, type UserPermissionsResponse } from '../api/adminService'
 
 const routes = [
   {
@@ -39,6 +40,13 @@ const routes = [
     path: '/cards',
     name: 'CardsList',
     component: CardsView,
+    meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'cards' },
+  },
+  {
+    // <-- НОВЫЙ РОУТ ДЛЯ МАРКЕТПЛЕЙСОВ
+    path: '/marketplace-links',
+    name: 'MarketplaceLinks',
+    component: MarketplaceLinks,
     meta: { requiresAuth: true, requiresJurperson: true, requiredPermission: 'cards' },
   },
   {

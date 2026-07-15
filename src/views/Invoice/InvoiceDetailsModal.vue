@@ -82,6 +82,14 @@
             "
             :extra-columns="invoiceQtyColumns"
           >
+            <template #cell(expirationDate)="{ item }: { item: any }">
+              <span
+                class="font-mono text-xs font-semibold text-primary bg-secondary border border-dark px-6 py-4 rounded-6 block text-center truncate"
+              >
+                {{ formatDate(item.expirationDate) }}
+              </span>
+            </template>
+
             <template #cell(qty)="{ item }: { item: any }">
               <span
                 class="text-xs font-semibold text-warning bg-warning-subtle border-warning px-6 py-4 rounded-6 tabular-nums"
@@ -144,20 +152,36 @@ const { loading, run } = useAsync()
 const { loading: isSaving, run: runSaveHeader } = useAsync()
 const headerLoading = ref(false)
 
+const getStatusVariant = (s: string): 'success' | 'info' | 'neutral' => {
+  const l = (s || '').toLowerCase()
+  if (l.includes('архив')) return 'neutral'
+  if (l.includes('работе') || l.includes('готов')) return 'success'
+  return 'info'
+}
+
+const formatDate = (dateStr: string | null | undefined) => {
+  if (!dateStr) return '—'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
 const invoiceQtyColumns: TableColumn<CatalogItem>[] = [
   { key: 'qty' as keyof CatalogItem, label: 'План', width: '100px' },
   { key: 'qtyFact' as keyof CatalogItem, label: 'Факт', width: '100px' },
 ]
 
 if (props.modelType === 'FBO') {
+  invoiceQtyColumns.unshift({
+    key: 'expirationDate' as keyof CatalogItem,
+    label: 'Срок годности',
+    width: '120px',
+  })
   invoiceQtyColumns.push({ key: 'qtyDefect' as keyof CatalogItem, label: 'Брак', width: '100px' })
-}
-
-const getStatusVariant = (s: string): 'success' | 'info' | 'neutral' => {
-  const l = (s || '').toLowerCase()
-  if (l.includes('архив')) return 'neutral'
-  if (l.includes('работе') || l.includes('готов')) return 'success'
-  return 'info'
 }
 
 const formatDateForInput = (dateStr: string | null | undefined) =>

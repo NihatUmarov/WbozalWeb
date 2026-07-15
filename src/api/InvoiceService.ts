@@ -21,6 +21,7 @@ export interface CreateDocumentItemPayload {
   barcode: string
   qty: number
   isDefect?: boolean
+  expirationDate?: string | null
 }
 
 export interface CreateStockDocumentPayload {
@@ -44,6 +45,7 @@ export interface StockDocumentDetailItem {
   qty: number
   qtyFact: number
   qtyDefect: number
+  expirationDate: string | null // <-- Добавили сюда
 }
 
 export interface StockDocument {

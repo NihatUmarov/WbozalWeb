@@ -1,4 +1,3 @@
-<!-- BaseDataPage.vue -->
 <template>
   <div class="data-page flex flex-col gap-20">
     <div class="card page-header" v-if="hasHeader">
@@ -44,18 +43,30 @@
         :empty-icon="emptyIcon"
         :max-height="tableMaxHeight"
         :row-class="rowClass"
+        @rowClick="onRowClick"
       >
         <template v-for="(_, name) in $slots as Record<string, any>" :key="name" #[name]="slotData">
           <slot :name="name" v-bind="slotData || {}"></slot>
         </template>
       </BaseTable>
     </div>
+
+    <!-- ВСТРОЕННЫЙ МЕХАНИЗМ ШТОРКИ ДЛЯ РЕДАКТИРОВАНИЯ/ПРОСМОТРА СТРОКИ -->
+    <BaseDialog v-model:is-open="isRowModalOpen" variant="sheet" max-width="5xl">
+      <template #header>
+        <h2 class="text-xl font-bold m-0 flex items-center gap-12">Детали записи</h2>
+      </template>
+
+      <!-- Пробрасываем выбранный элемент и метод закрытия в родительский компонент -->
+      <slot name="row-details" :item="selectedRowItem" :close="closeRowModal"></slot>
+    </BaseDialog>
   </div>
 </template>
 
-<script setup lang="ts" generic="T extends Record<string, unknown>">
+<script setup lang="ts" generic="T extends Record<string, any>">
 import { ref, computed } from 'vue'
 import BaseTable from './BaseTable.vue'
+import BaseDialog from './UnifiedUI.vue' // <-- Убедись, что путь к твоей модалке правильный
 import type { TableColumn } from './BaseTable.vue'
 
 export interface TabItem {
@@ -90,7 +101,10 @@ const props = withDefaults(
   },
 )
 
-defineEmits<{ tabChange: [value: string | number] }>()
+const emit = defineEmits<{
+  (e: 'tabChange', value: string | number): void
+  (e: 'rowClick', item: T): void
+}>()
 
 interface TableInstance {
   triggerExcelExport: (fileName: string) => void
@@ -100,10 +114,25 @@ interface TableInstance {
 
 const tableRef = ref<TableInstance | null>(null)
 
+// Состояние встроенной шторки
+const isRowModalOpen = ref(false)
+const selectedRowItem = ref<T | null>(null)
+
 const handleExportClick = () => {
   if (tableRef.value?.triggerExcelExport) {
     tableRef.value.triggerExcelExport(props.title)
   }
+}
+
+const onRowClick = (item: T) => {
+  emit('rowClick', item) // Пробрасываем событие дальше, если кому-то нужно
+  selectedRowItem.value = item
+  isRowModalOpen.value = true
+}
+
+const closeRowModal = () => {
+  isRowModalOpen.value = false
+  selectedRowItem.value = null
 }
 
 const slots = defineSlots()

@@ -176,19 +176,35 @@
             </template>
 
             <template #cell(actions)="{ item }: { item: any }">
-              <div class="flex items-center justify-end w-full">
-                <input
-                  type="number"
-                  min="1"
-                  :max="modelType === 'ORD' ? calculateAvailableToShip(item) : undefined"
-                  placeholder="Кол-во"
-                  class="input text-center font-semibold"
-                  style="width: 85px; height: 28px; padding: 0 4px"
-                  :disabled="modelType === 'ORD' && calculateAvailableToShip(item) <= 0"
-                  v-model.number="inputAmounts[item.idName]"
-                  @keydown.enter="handleInputCommit(item)"
-                  @blur="handleInputCommit(item)"
-                />
+              <div class="flex items-center justify-end gap-12 w-full">
+                <!-- Срок годности отображается ТОЛЬКО при создании Прихода (FBO) -->
+                <div v-if="modelType === 'FBO'" class="flex flex-col items-start gap-4">
+                  <span class="text-[10px] text-muted font-medium">Срок годности</span>
+                  <input
+                    type="date"
+                    class="input text-xs"
+                    style="width: 135px; height: 32px; padding: 0 6px"
+                    v-model="inputExpirations[item.idName]"
+                  />
+                </div>
+
+                <div class="flex flex-col items-start gap-4">
+                  <span v-if="modelType === 'FBO'" class="text-[10px] text-muted font-medium"
+                    >Кол-во</span
+                  >
+                  <input
+                    type="number"
+                    min="1"
+                    :max="modelType === 'ORD' ? calculateAvailableToShip(item) : undefined"
+                    placeholder="Кол-во"
+                    class="input text-center font-semibold"
+                    style="width: 85px; height: 32px; padding: 0 4px"
+                    :disabled="modelType === 'ORD' && calculateAvailableToShip(item) <= 0"
+                    v-model.number="inputAmounts[item.idName]"
+                    @keydown.enter="handleInputCommit(item)"
+                    @blur="handleInputCommit(item)"
+                  />
+                </div>
               </div>
             </template>
           </SharedProductTable>
@@ -232,6 +248,24 @@ import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import type { UnifiedProductItem } from '@/composables/useExcelImport'
 import BaseModal from '@/components/ui/UnifiedUI.vue'
 
+const props = defineProps<{ isOpen: boolean; modelType: 'FBO' | 'ORD' }>()
+const emit = defineEmits<{ 'update:isOpen': [value: boolean]; saved: [] }>()
+
+const toast = useToast()
+const inputAmounts = reactive<Record<number, number | string>>({})
+const inputExpirations = reactive<Record<number, string>>({})
+const { loading, run: runLoadCards } = useAsync()
+const { loading: isSaving, run: runSaveDoc } = useAsync()
+
+const availableCards = ref<CatalogItem[]>([])
+const addedItems = ref<LocalPosition[]>([])
+const filterDefect = ref(false)
+const formHeader = reactive({ phone: '', comment: '', eventDate: '', direction: '' })
+
+const showAddedItemsModal = ref(false)
+const showErrorsModal = ref(false)
+const excelInputRef = ref<HTMLInputElement | null>(null)
+
 const unifiedCardsForImport = computed<UnifiedProductItem[]>(() => {
   return availableCards.value.map((card) => ({
     idName: card.idName,
@@ -246,27 +280,17 @@ const unifiedCardsForImport = computed<UnifiedProductItem[]>(() => {
     primaryImageURL: card.primaryImageURL,
   }))
 })
-const props = defineProps<{ isOpen: boolean; modelType: 'FBO' | 'ORD' }>()
-const emit = defineEmits<{ 'update:isOpen': [value: boolean]; saved: [] }>()
 
-const toast = useToast()
-const inputAmounts = reactive<Record<number, number | string>>({})
-const { loading, run: runLoadCards } = useAsync()
-const { loading: isSaving, run: runSaveDoc } = useAsync()
-
-const availableCards = ref<CatalogItem[]>([])
-const addedItems = ref<LocalPosition[]>([])
-const filterDefect = ref(false)
-const formHeader = reactive({ phone: '', comment: '', eventDate: '', direction: '' })
-
-const showAddedItemsModal = ref(false)
-const showErrorsModal = ref(false)
-const excelInputRef = ref<HTMLInputElement | null>(null)
-
-const createActionColumns: TableColumn<CatalogItem>[] = [
-  { key: 'stock' as keyof CatalogItem, label: 'Доступно', width: '120px' },
-  { key: 'actions' as keyof CatalogItem, label: '', width: '110px' },
-]
+const createActionColumns = computed<TableColumn<CatalogItem>[]>(() => {
+  return [
+    { key: 'stock' as keyof CatalogItem, label: 'Доступно', width: '120px' },
+    {
+      key: 'actions' as keyof CatalogItem,
+      label: '',
+      width: props.modelType === 'FBO' ? '260px' : '110px',
+    },
+  ]
+})
 
 const triggerExcelInput = () => excelInputRef.value?.click()
 
@@ -339,10 +363,25 @@ const quickAddProduct = (card: CatalogItem, customQty = 1) => {
   if (props.modelType === 'ORD' && limit <= 0) return toast.warning('Товара нет в наличии!')
 
   const barcode = card.barcodes?.[0] || card.barcode || 'Без ШК'
+  const selectedExpDate = inputExpirations[card.idName] || null
+  const conflictingItem = addedItems.value.find(
+    (item) => item.barcode === barcode && item.expirationDate !== selectedExpDate,
+  )
+
+  if (conflictingItem) {
+    const existingDateText = conflictingItem.expirationDate
+      ? conflictingItem.expirationDate
+      : 'Без срока'
+    return toast.error(
+      `Ошибка! Для штрихкода ${barcode} уже задан срок годности: ${existingDateText}. Нельзя сохранить один ШК с разными сроками!`,
+    )
+  }
+
   const existing = addedItems.value.find(
     (i) =>
       i.idName === card.idName &&
       i.barcode === barcode &&
+      i.expirationDate === selectedExpDate &&
       (props.modelType !== 'ORD' || i.isDefect === card.isDefect),
   )
 
@@ -353,6 +392,7 @@ const quickAddProduct = (card: CatalogItem, customQty = 1) => {
   } else {
     if (props.modelType === 'ORD' && customQty > limit)
       return toast.warning(`Лимит превышен. Доступно: ${limit} шт.`)
+
     addedItems.value.push({
       idName: card.idName,
       barcode,
@@ -362,8 +402,11 @@ const quickAddProduct = (card: CatalogItem, customQty = 1) => {
       size: card.size || '—',
       isDefect: props.modelType === 'ORD' ? card.isDefect : false,
       primaryImageURL: card.primaryImageURL,
+      expirationDate: selectedExpDate,
     })
   }
+
+  delete inputExpirations[card.idName]
   toast.info(`Добавлено: ${card.cArt} (${customQty} шт.)`)
 }
 
@@ -384,10 +427,11 @@ const submitDocument = () => {
         phone: formHeader.phone,
         direction: props.modelType === 'ORD' ? formHeader.direction : '',
         eventDate: formHeader.eventDate ? new Date(formHeader.eventDate).toISOString() : null,
-        items: addedItems.value.map(({ idName, barcode, qty, isDefect }) => ({
+        items: addedItems.value.map(({ idName, barcode, qty, isDefect, expirationDate }) => ({
           idName,
           barcode,
           qty,
+          expirationDate,
           ...(props.modelType === 'ORD' ? { isDefect } : {}),
         })),
       })
@@ -405,6 +449,7 @@ watch(
     Object.assign(formHeader, { phone: '', comment: '', eventDate: '', direction: '' })
     addedItems.value = []
     Object.keys(inputAmounts).forEach((k) => delete inputAmounts[Number(k)])
+    Object.keys(inputExpirations).forEach((k) => delete inputExpirations[Number(k)])
     filterDefect.value = false
     showAddedItemsModal.value = false
     loadAvailableItems()
@@ -426,17 +471,13 @@ input[type='number'] {
   appearance: textfield;
 }
 
-/* 1. Исправление наложения слоев:
-  Задаем контекст наложения для всей группы инпута ТЗ, чтобы при фокусе/hover
-  весь этот блок гарантированно вставал над кнопками и таблицей.
-*/
 .textarea-container-wrapper {
   position: relative;
   z-index: 20;
 }
 .textarea-container-wrapper:hover,
 .textarea-container-wrapper:focus-within {
-  z-index: 50; /* Поднимаем весь блок при взаимодействии */
+  z-index: 50;
 }
 
 .textarea-relative-box {
@@ -444,7 +485,6 @@ input[type='number'] {
   width: 100%;
 }
 
-/* Базовое состояние свернутого текстового поля */
 .expanding-textarea {
   height: 38px;
   line-height: 1.4;
@@ -461,13 +501,9 @@ input[type='number'] {
   background-color: #fff;
 }
 
-/* 2. Исправление раскрытия без текста + уменьшение высоты:
-  Используем псевдокласс :not(:placeholder-shown), чтобы поле увеличивалось
-  ТОЛЬКО если пользователь туда что-то ввел, ИЛИ когда поле находится в активном фокусе (:focus).
-*/
 .textarea-container-wrapper:hover .expanding-textarea:not(:placeholder-shown),
 .expanding-textarea:focus {
-  height: 130px; /* Уменьшено в 2 раза (было 260px) */
+  height: 130px;
   overflow-y: auto;
   white-space: normal;
   box-shadow:
@@ -475,7 +511,6 @@ input[type='number'] {
     0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Кастомный скроллбар */
 .expanding-textarea::-webkit-scrollbar {
   width: 6px;
 }
