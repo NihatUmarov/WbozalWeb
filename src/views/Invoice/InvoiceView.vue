@@ -29,76 +29,50 @@
 
     <template #cell(id)="{ value, item }">
       <div class="flex items-center gap-6">
-        <span class="text-primary font-bold font-mono text-sm tabular-nums">#{{ value }}</span>
-        <span
-          v-if="item.model === 'DEF'"
-          class="badge badge--error text-[10px] uppercase font-extrabold px-4 py-2"
-          style="line-height: 1"
-        >
-          Брак
-        </span>
+        <AppTableCell :value="`#${value}`" mono bold color="brand" />
+        <AppBadge v-if="item.model === 'DEF'" variant="error" text="Брак" size="xs" />
       </div>
     </template>
 
     <template #cell(date)="{ value }">
-      <span class="text-secondary font-mono text-xs tabular-nums">
-        {{ formatDate(String(value)) }}
-      </span>
+      <AppTableCell :value="formatDate(String(value))" mono size="xs" color="secondary" />
     </template>
 
     <template #cell(workDay)="{ value }">
-      <span v-if="value" class="text-main font-mono text-xs tabular-nums fw-semibold">
-        {{ formatDate(String(value)) }}
-      </span>
-      <span v-else class="text-muted text-xs">—</span>
+      <AppTableCell
+        v-if="value"
+        :value="formatDate(String(value))"
+        mono
+        size="xs"
+        bold
+        color="primary"
+      />
+      <AppTableCell v-else value="—" color="muted" size="xs" />
     </template>
 
     <template #cell(status)="{ value }">
-      <span :class="['badge', `badge--${getStatusVariant(String(value))}`]">
-        {{ value || 'Нет статуса' }}
-      </span>
+      <AppBadge :variant="getStatusVariant(String(value))" :text="String(value || 'Нет статуса')" />
     </template>
 
     <template #cell(direction)="{ value }">
-      <span :class="['badge', `badge--${getStatusVariant(String(value))}`]">
-        {{ value || 'Нет направления' }}
-      </span>
+      <AppBadge
+        v-if="value"
+        :variant="getStatusVariant(String(value))"
+        :text="String(value || 'Нет направления')"
+      />
+      <AppTableCell v-else value="—" color="muted" />
     </template>
 
     <template #cell(quantity)="{ value }">
-      <span
-        v-if="Number(value) > 0"
-        class="text-xs font-semibold text-warning bg-warning-subtle border-warning px-6 py-4 rounded-6 tabular-nums"
-      >
-        {{ value }} шт.
-      </span>
-      <span v-else class="text-muted text-xs font-medium tabular-nums">0 шт.</span>
+      <AppBadge variant="warning" :text="formatQuantity(value)" />
     </template>
 
     <template #cell(quantityFact)="{ value }">
-      <span
-        v-if="Number(value) > 0"
-        class="text-xs font-bold text-success bg-success-subtle border-success px-6 py-4 rounded-6 tabular-nums"
-      >
-        {{ value }} шт.
-      </span>
-      <span v-else class="text-muted text-xs font-medium tabular-nums">0 шт.</span>
+      <AppBadge variant="success" :text="formatQuantity(value)" />
     </template>
 
     <template #cell(quantityDefect)="{ value }">
-      <span
-        v-if="Number(value) > 0"
-        class="text-xs font-bold text-error bg-error-subtle border-error px-6 py-4 rounded-6 tabular-nums"
-      >
-        {{ value }} шт.
-      </span>
-      <span v-else class="text-muted text-xs font-medium tabular-nums">0 шт.</span>
-    </template>
-
-    <template #cell(model)="{ value }">
-      <span :class="['badge', value === 'DEF' ? 'badge--error' : 'badge--success']">
-        {{ value === 'DEF' ? 'Брак' : 'Стандартная' }}
-      </span>
+      <AppBadge variant="error" :text="formatQuantity(value)" />
     </template>
 
     <template #cell(actions)="{ item }">
@@ -113,13 +87,7 @@
         <button
           v-if="permissions.invoice"
           class="btn btn-secondary btn-xs flex items-center justify-center shrink-0"
-          style="
-            width: 32px;
-            height: 32px;
-            min-width: 32px;
-            min-height: 32px;
-            padding: 0 !important;
-          "
+          style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0"
           :disabled="exportingId === item.id || cancellingId === item.id"
           @click="exportDocumentToExcel(item.id, item.model)"
           title="Скачать спецификацию в Excel"
@@ -129,28 +97,20 @@
             v-else
             src="@/components/icons/office-exel.svg"
             alt="Excel"
-            style="width: 18px; height: 18px; display: block; margin: 0 auto"
+            style="width: 18px; height: 18px"
           />
         </button>
 
         <button
           v-if="permissions.invoice && !filterArchive"
           class="btn btn-secondary btn-xs flex items-center justify-center shrink-0 hover:bg-error-subtle transition-colors"
-          style="
-            width: 32px;
-            height: 32px;
-            min-width: 32px;
-            min-height: 32px;
-            padding: 0 !important;
-          "
+          style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0"
           :disabled="cancellingId === item.id || exportingId === item.id"
           @click="openCancelConfirm(item.id)"
           title="Отменить документ и снять резерв с ячеек"
         >
           <span v-if="cancellingId === item.id" class="mini-loader"></span>
-          <span v-else style="font-size: 13px; display: block; line-height: 1; color: #ef4444"
-            >❌</span
-          >
+          <span v-else style="font-size: 13px; color: #ef4444">❌</span>
         </button>
       </div>
     </template>
@@ -212,9 +172,11 @@ import { stockService } from '@/api/InvoiceService'
 import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'
 import { ExcelDocumentExporter } from '@/composables/excelExporter'
+import { formatDate, formatQuantity } from '@/utils/formatters'
+import { getStatusVariant } from '@/utils/ui-helpers'
 import type { StockDocument } from '@/api/InvoiceService'
 import BaseDataPage, { type TabItem } from '@/components/ui/BaseDataPage.vue'
-import type { TableColumn } from '@/components/ui/BaseTable.vue'
+import { AppBadge, AppTableCell, type TableColumn } from '@/components/ui/BaseTable.vue'
 import BaseModal from '@/components/ui/UnifiedUI.vue'
 import DocumentCreateModal from './InvoiceCreateModal.vue'
 import DocumentDetailsModal from './InvoiceDetailsModal.vue'
@@ -248,10 +210,7 @@ const activeDocument = computed(() => documents.value.find((d) => d.id === activ
 
 const activeDocumentModel = computed<DocModel>(() => {
   const modelFromServer = activeDocument.value?.model as DocModel | undefined
-  if (modelFromServer === 'FBO' || modelFromServer === 'ORD' || modelFromServer === 'DEF') {
-    return modelFromServer
-  }
-  return currentModel.value
+  return (modelFromServer as DocModel) || currentModel.value
 })
 
 const activeDocumentStatus = computed(() => activeDocument.value?.status)
@@ -349,22 +308,6 @@ const openDetails = (id: number): void => {
 const handleTabChange = (value: unknown): void => {
   currentModel.value = value as DocModel
   fetchDocuments()
-}
-
-const formatDate = (d: string): string => {
-  if (!d || d === 'null') return ''
-  return new Date(d).toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
-
-const getStatusVariant = (s: string): 'success' | 'info' | 'neutral' => {
-  const l = (s || '').toLowerCase()
-  if (l.includes('архив')) return 'neutral'
-  if (l.includes('работе') || l.includes('готов')) return 'success'
-  return 'info'
 }
 
 onMounted(fetchDocuments)

@@ -45,7 +45,7 @@ export interface StockDocumentDetailItem {
   qty: number
   qtyFact: number
   qtyDefect: number
-  expirationDate: string | null // <-- Добавили сюда
+  expirationDate: string | null
 }
 
 export interface StockDocument {
@@ -61,65 +61,21 @@ export interface StockDocument {
 }
 
 export const stockService = {
-  async getDocuments(model: string, archive = false): Promise<StockDocument[]> {
-    // Бэкенд теперь принимает параметры через строку запроса [FromQuery]
-    const { data } = await httpClient.post<StockDocument[]>('/api/seller/get_invoice', null, {
-      params: { model, archive },
-    })
-    return data
-  },
+  getDocuments: (model: string, archive = false) =>
+    httpClient.post<StockDocument[]>('/api/seller/get_invoice', null, { params: { model, archive } }).then(r => r.data),
 
-  async createDocument(
-    payload: CreateStockDocumentPayload,
-  ): Promise<{ message: string; id: number; idInvoice?: number; report?: string }> {
-    const { data } = await httpClient.post<{
-      message: string
-      id: number
-      idInvoice?: number
-      report?: string
-    }>('/api/seller/create_invoice', payload)
-    return data
-  },
+  createDocument: (payload: CreateStockDocumentPayload) =>
+    httpClient.post<{ message: string; id: number }>('/api/seller/create_invoice', payload).then(r => r.data),
 
-  async getDocumentDetails(idRSIncome: number): Promise<StockDocumentDetailItem[]> {
-    // Бэкенд ждет [FromQuery] int idRSIncome
-    const { data } = await httpClient.post<StockDocumentDetailItem[]>(
-      '/api/seller/get_invoice_details',
-      null,
-      { params: { idRSIncome } },
-    )
-    return data
-  },
+  getDocumentDetails: (idRSIncome: number) =>
+    httpClient.post<StockDocumentDetailItem[]>('/api/seller/get_invoice_details', null, { params: { idRSIncome } }).then(r => r.data),
 
-  async cancelDocument(idRSIncome: number): Promise<{ message: string }> {
-    // Бэкенд ждет [FromQuery] int idRSIncome
-    const { data } = await httpClient.post<{ message: string }>(
-      '/api/seller/cancel_invoice',
-      null,
-      {
-        params: { idRSIncome },
-      },
-    )
-    return data
-  },
+  cancelDocument: (idRSIncome: number) =>
+    httpClient.post<{ message: string }>('/api/seller/cancel_invoice', null, { params: { idRSIncome } }).then(r => r.data),
 
-  async getInvoiceHeader(idRSIncome: number): Promise<InvoiceHeaderData> {
-    // Бэкенд ждет [FromQuery] int idRSIncome
-    const { data } = await httpClient.post<InvoiceHeaderData>(
-      '/api/seller/get_invoice_header',
-      null,
-      {
-        params: { idRSIncome },
-      },
-    )
-    return data
-  },
+  getInvoiceHeader: (idRSIncome: number) =>
+    httpClient.post<InvoiceHeaderData>('/api/seller/get_invoice_header', null, { params: { idRSIncome } }).then(r => r.data),
 
-  async updateInvoiceHeader(payload: UpdateInvoiceHeaderPayload): Promise<{ message: string }> {
-    const { data } = await httpClient.post<{ message: string }>(
-      '/api/seller/update_invoice_header',
-      payload,
-    )
-    return data
-  },
+  updateInvoiceHeader: (payload: UpdateInvoiceHeaderPayload) =>
+    httpClient.post<{ message: string }>('/api/seller/update_invoice_header', payload).then(r => r.data),
 }

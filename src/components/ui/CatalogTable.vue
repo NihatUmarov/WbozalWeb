@@ -5,7 +5,7 @@
     :columns="mergedColumns"
     :loading="loading"
     :max-height="maxHeight"
-    @row-click="(item) => $emit('rowClick', item)"
+    @row-click="(item) => $emit('rowClick', item as T)"
   >
     <!-- 1. Изображение -->
     <template #cell(primaryImageURL)="{ item }">
@@ -13,8 +13,8 @@
         class="w-full aspect-square max-w-[64px] max-h-[64px] flex items-center justify-center bg-secondary rounded-6 overflow-hidden mx-auto"
       >
         <img
-          v-if="item.primaryImageURL"
-          :src="String(item.primaryImageURL)"
+          v-if="(item as any).primaryImageURL"
+          :src="String((item as any).primaryImageURL)"
           alt="Товар"
           class="object-contain w-full h-full"
         />
@@ -24,18 +24,21 @@
 
     <!-- 2. Артикул -->
     <template #cell(cArt)="{ item }">
-      <span
-        class="font-mono text-xs font-semibold text-primary bg-secondary border-dark px-6 py-4 rounded-6 block text-center truncate"
-        >{{ item.cArt || '—' }}</span
-      >
+      <AppTableCell :value="(item as any).cArt" mono bold align="center" bg="secondary" border :px="6" :py="4" />
     </template>
 
     <!-- 3. Артикул WB -->
     <template #cell(cArtWB)="{ item }">
-      <span
-        class="font-mono text-xs font-semibold text-primary bg-secondary border-dark px-6 py-4 rounded-6 block text-center truncate"
-        >{{ item.cArtWB || '—' }}</span
-      >
+      <AppTableCell
+        :value="(item as any).cArtWB"
+        mono
+        bold
+        align="center"
+        bg="secondary"
+        border
+        :px="6"
+        :py="4"
+      />
     </template>
 
     <!-- 4. Название товара -->
@@ -44,81 +47,82 @@
         <div class="flex items-center gap-6">
           <span
             class="text-sm font-semibold text-primary truncate"
-            :title="String(item.cName || '')"
-            >{{ item.cName || 'Без названия' }}</span
+            :title="String((item as any).cName || '')"
+            >{{ (item as any).cName || 'Без названия' }}</span
           >
-          <span v-if="item.isKit" class="badge badge--info text-[10px] py-2 px-4 shrink-0"
-            >📦 Комплект</span
-          >
+          <AppBadge v-if="(item as any).isKit" variant="info" text="📦 Комплект" />
         </div>
-        <span class="text-xs text-muted font-mono mt-4">ID: {{ item.idName }}</span>
+        <span class="text-xs text-muted font-mono mt-4">ID: {{ (item as any).idName }}</span>
       </div>
     </template>
 
     <!-- 5. Размер -->
     <template #cell(size)="{ item }">
-      <span class="text-sm font-medium text-primary block text-center truncate">{{
-        item.size || '—'
-      }}</span>
+      <AppTableCell :value="(item as any).size" bold align="center" />
     </template>
 
     <!-- 6. Штрихкоды -->
     <template #cell(barcodes)="{ item }">
       <div
-        v-if="Array.isArray(item.barcodes) && item.barcodes.length"
+        v-if="Array.isArray((item as any).barcodes) && (item as any).barcodes.length"
         class="flex flex-wrap gap-4 min-w-0"
       >
-        <span
-          v-for="bc in item.barcodes"
+        <AppTableCell
+          v-for="bc in ((item as any).barcodes as string[])"
           :key="String(bc)"
-          class="font-mono text-xs text-muted bg-secondary border-dark px-6 py-4 rounded-6 tracking-wide truncate"
-          >{{ bc }}</span
-        >
+          :value="String(bc)"
+          mono
+          color="muted"
+          bg="secondary"
+          border
+          :px="6"
+          :py="4"
+        />
       </div>
-      <span
-        v-else-if="item.barcode"
-        class="font-mono text-xs text-muted bg-secondary border-dark px-6 py-4 rounded-6 tracking-wide block text-center truncate"
-        >{{ item.barcode }}</span
-      >
-      <span v-else class="text-muted text-xs font-medium font-mono block text-center">—</span>
+      <AppTableCell
+        v-else-if="(item as any).barcode"
+        :value="String((item as any).barcode)"
+        mono
+        color="muted"
+        bg="secondary"
+        border
+        :px="6"
+        :py="4"
+        align="center"
+      />
+      <AppTableCell v-else value="—" color="muted" align="center" />
     </template>
 
     <!-- 7. Доступно (irQuant) -->
     <template #cell(irQuant)="{ item }">
-      <span
-        :class="[
-          'text-xs font-bold px-6 py-4 rounded-6 tabular-nums block text-center truncate',
-          Number(item.irQuant || 0) > 0
-            ? 'text-success bg-success-subtle border-success'
-            : 'text-muted',
-        ]"
-      >
-        {{ Number(item.irQuant || 0) > 0 ? `${item.irQuant} шт.` : '0 шт.' }}
-      </span>
+      <div class="flex justify-center">
+        <AppBadge
+          :variant="Number((item as any).irQuant || 0) > 0 ? 'success' : 'neutral'"
+          :text="formatQuantity((item as any).irQuant as number)"
+        />
+      </div>
     </template>
 
     <!-- 8. В резерве (iBronTask) -->
     <template #cell(iBronTask)="{ item }">
-      <span
-        v-if="Number(item.iBronTask || 0) > 0"
-        class="text-xs font-semibold text-warning bg-warning-subtle border-warning px-6 py-4 rounded-6 tabular-nums block text-center truncate"
-        >{{ item.iBronTask }} шт.</span
-      >
-      <span v-else class="text-muted text-xs font-medium tabular-nums block text-center">—</span>
+      <div class="flex justify-center">
+        <AppBadge
+          v-if="Number((item as any).iBronTask || 0) > 0"
+          variant="warning"
+          :text="formatQuantity((item as any).iBronTask as number)"
+        />
+        <AppTableCell v-else value="—" color="muted" align="center" />
+      </div>
     </template>
 
     <!-- 9. Брак (defectQuant) -->
     <template #cell(defectQuant)="{ item }">
-      <span
-        :class="[
-          'text-xs font-bold px-6 py-4 rounded-6 tabular-nums block text-center truncate',
-          Number(item.defectQuant || 0) > 0
-            ? 'text-error bg-error-subtle border-error'
-            : 'text-muted',
-        ]"
-      >
-        {{ Number(item.defectQuant || 0) > 0 ? `${item.defectQuant} шт.` : '0 шт.' }}
-      </span>
+      <div class="flex justify-center">
+        <AppBadge
+          :variant="Number((item as any).defectQuant || 0) > 0 ? 'error' : 'neutral'"
+          :text="formatQuantity((item as any).defectQuant as number)"
+        />
+      </div>
     </template>
 
     <!-- Динамический проброс внешних слотов -->
@@ -132,23 +136,18 @@
   </BaseTable>
 </template>
 
-<!-- В файле CatalogTable.vue -->
-<script setup lang="ts">
-import { ref, computed, type ComponentPublicInstance } from 'vue' // 1. Импортируем ComponentPublicInstance
-import BaseTable from './BaseTable.vue'
-import type { TableColumn } from './BaseTable.vue'
-import type { CatalogItem as BaseCatalogItem } from '@/api/catalogService'
-
-interface CatalogItem extends BaseCatalogItem, Record<string, unknown> {
-  isKit?: boolean
-}
+<script setup lang="ts" generic="T extends Record<string, any>">
+import { ref, computed, type ComponentPublicInstance } from 'vue'
+import BaseTable, { AppBadge, AppTableCell, type TableColumn } from './BaseTable.vue'
+import { formatQuantity } from '@/utils/formatters'
+import type { Product } from '@/api/types'
 
 const props = withDefaults(
   defineProps<{
-    items: CatalogItem[]
+    items: T[]
     loading?: boolean
     maxHeight?: string
-    extraColumns?: TableColumn<CatalogItem>[]
+    extraColumns?: TableColumn<T>[]
     hideColumns?: string[]
   }>(),
   {
@@ -159,20 +158,18 @@ const props = withDefaults(
 )
 
 defineEmits<{
-  (e: 'rowClick', item: CatalogItem): void
+  (e: 'rowClick', item: T): void
 }>()
 
-// 2. Объявляем интерфейс методов, которые отдает BaseTable через defineExpose
 interface BaseTableExpose {
   triggerExcelExport: (fileName: string) => void
   getScrollTop: () => number
   setScrollTop: (top: number) => void
 }
 
-// 3. Используем ComponentPublicInstance вместо InstanceType<typeof BaseTable>
 const baseTableRef = ref<(ComponentPublicInstance & BaseTableExpose) | null>(null)
 
-const baseColumns: TableColumn<CatalogItem>[] = [
+const baseColumns: TableColumn<Product>[] = [
   { key: 'primaryImageURL', label: 'Фото', width: '70px', minWidth: '70px' },
   { key: 'cArt', label: 'Артикул', sortable: true, filterable: true, minWidth: '100px' },
   { key: 'cArtWB', label: 'Арт. WB', sortable: true, filterable: true, minWidth: '100px' },
@@ -184,12 +181,11 @@ const baseColumns: TableColumn<CatalogItem>[] = [
   { key: 'defectQuant', label: 'Брак', sortable: true, minWidth: '90px' },
 ]
 
-const mergedColumns = computed<TableColumn<CatalogItem>[]>(() => {
-  const filteredBase = baseColumns.filter((c) => !props.hideColumns.includes(String(c.key)))
+const mergedColumns = computed<TableColumn<T>[]>(() => {
+  const filteredBase = baseColumns.filter((c) => !props.hideColumns.includes(String(c.key))) as unknown as TableColumn<T>[]
   return [...filteredBase, ...props.extraColumns]
 })
 
-// 4. Пробрасываем методы наружу
 defineExpose({
   triggerExcelExport: (fileName: string) => baseTableRef.value?.triggerExcelExport(fileName),
   getScrollTop: () => baseTableRef.value?.getScrollTop() ?? 0,

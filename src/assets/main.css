@@ -1280,6 +1280,15 @@ h3 {
 .text-2xl {
   font-size: 24px;
 }
+.text-primary {
+  color: var(--color-text-primary);
+}
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+.text-brand {
+  color: var(--color-primary);
+}
 .text-success {
   color: var(--color-success-text);
 }

@@ -1,20 +1,9 @@
 import { ref, type Ref } from 'vue'
 import * as XLSX from 'xlsx'
 import { useToast } from '@/composables/useToast'
+import type { Product } from '@/api/types'
 
-// --- Описание интерфейсов (если нет файла types/products, они будут жить тут) ---
-export interface UnifiedProductItem {
-  idName: number
-  cName: string | null
-  cArt: string | null
-  size: string | null
-  irQuant: number
-  iBronTask: number
-  defectQuant: number
-  barcodes: string[]
-  isDefect?: boolean
-  primaryImageURL?: string | null
-}
+export type UnifiedProductItem = Product
 
 export interface LocalPosition {
   idName: number
@@ -42,20 +31,10 @@ export function useExcelImport(
   const toast = useToast()
   const importErrors = ref<ImportErrorRecord[]>([])
 
-  const calculateAvailableToShip = (item: UnifiedProductItem) => {
-    return Math.max(0, (item.irQuant ?? 0) - (item.iBronTask ?? 0))
-  }
-
-  const handleExcelImport = async (
-    event: Event,
-    currentAddedItems: LocalPosition[],
-  ): Promise<LocalPosition[] | null> => {
+  const handleExcelImport = async (event: Event, current: LocalPosition[]): Promise<LocalPosition[] | null> => {
     const target = event.target as HTMLInputElement
-    const files = target.files
-
-    // Сразу отсекаем null/empty и гарантируем TS, что файлы существуют
-    if (!files || !files.length) return null
-    const file = files[0]
+    if (!target.files?.length) return null
+    const file = target.files[0]
 
     return new Promise((resolve) => {
       const reader = new FileReader()
@@ -63,135 +42,42 @@ export function useExcelImport(
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer)
           const workbook = XLSX.read(data, { type: 'array' })
-          const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-          const rawRows = XLSX.utils.sheet_to_json<(string | number | undefined)[]>(worksheet, {
-            header: 1,
-          })
+          const sheet = workbook.Sheets[workbook.SheetNames[0]]
+          const rows = XLSX.utils.sheet_to_json<(string | number | undefined)[]>(sheet, { header: 1 })
+          if (!rows.length) { toast.error('Файл пуст'); return resolve(null) }
 
-          if (!rawRows.length) {
-            toast.error('Файл пуст')
-            return resolve(null)
-          }
+          const errors: ImportErrorRecord[] = []; const local = [...current]
+          const startIdx = String(rows[0][0] || '').toLowerCase().search(/штрих|шк|barcode/) !== -1 ? 1 : 0
 
-          const errors: ImportErrorRecord[] = []
-          let validCount = 0
-          const localAdded = [...currentAddedItems]
+          for (let i = startIdx; i < rows.length; i++) {
+            const row = rows[i]; if (!row || !row[0]) continue
+            const bc = String(row[0]).trim(); const qty = parseInt(String(row[1] || '0').trim(), 10)
+            if (isNaN(qty) || qty <= 0) { errors.push({ barcode: bc, qty: row[1] || 0, message: 'Некорректное кол-во' }); continue }
 
-          // Пропускаем шапку, если она есть
-          let startIdx = 0
-          const firstCell = String(rawRows[0][0] || '').toLowerCase()
-          if (
-            firstCell.includes('штрих') ||
-            firstCell.includes('шк') ||
-            firstCell.includes('barcode')
-          ) {
-            startIdx = 1
-          }
+            const card = availableCards.value.find(c => c.barcodes?.includes(bc))
+            if (!card) { errors.push({ barcode: bc, qty, message: 'Штрихкод не найден' }); continue }
 
-          for (let i = startIdx; i < rawRows.length; i++) {
-            const row = rawRows[i]
-            if (!row || (!row[0] && !row[1])) continue
-
-            const rawBarcode = String(row[0] || '').trim()
-            const rawQty = parseInt(String(row[1] || '0').trim(), 10)
-
-            if (!rawBarcode) {
-              errors.push({ barcode: 'Пусто', qty: row[1] || 0, message: 'Нет штрихкода' })
-              continue
-            }
-            if (isNaN(rawQty) || rawQty <= 0) {
-              errors.push({
-                barcode: rawBarcode,
-                qty: row[1] || 0,
-                message: 'Некорректное количество',
-              })
-              continue
-            }
-
-            // Поиск совпадения в каталоге с явной типизацией 'c' и 'b'
-            const card = availableCards.value.find((c: UnifiedProductItem) =>
-              c.barcodes?.map((b: string) => String(b).trim()).includes(rawBarcode),
-            )
-
-            if (!card) {
-              errors.push({
-                barcode: rawBarcode,
-                qty: rawQty,
-                message: filterDefect.value
-                  ? 'Штрихкод не найден среди бракованного товара'
-                  : 'Штрихкод не найден среди активного товара',
-              })
-              continue
-            }
-
-            // Валидация остатков для ORD
             if (modelType === 'ORD') {
-              const availableStock = calculateAvailableToShip(card)
-              const alreadyAdded = localAdded
-                .filter((item) => item.idName === card.idName && item.barcode === rawBarcode)
-                .reduce((sum, item) => sum + item.qty, 0)
-
-              if (alreadyAdded + rawQty > availableStock) {
-                errors.push({
-                  barcode: rawBarcode,
-                  qty: rawQty,
-                  message: `Превышен остаток. Доступно: ${availableStock} шт.`,
-                })
-                continue
-              }
+              const avail = Math.max(0, (card.irQuant || 0) - (card.iBronTask || 0))
+              const added = local.filter(l => l.idName === card.idName && l.barcode === bc).reduce((s, l) => s + l.qty, 0)
+              if (added + qty > avail) { errors.push({ barcode: bc, qty, message: `Превышен остаток (${avail} шт.)` }); continue }
             }
 
-            // Добавляем или обновляем количество
-            const existing = localAdded.find(
-              (item) =>
-                item.idName === card.idName &&
-                item.barcode === rawBarcode &&
-                (modelType !== 'ORD' || item.isDefect === card.isDefect),
-            )
-
-            if (existing) {
-              existing.qty += rawQty
-            } else {
-              localAdded.push({
-                idName: card.idName,
-                barcode: rawBarcode,
-                qty: rawQty,
-                name: card.cName || 'Без названия',
-                cArt: card.cArt || '—',
-                size: card.size || '—', // <-- ДОБАВЬТЕ ЭТУ СТРОКУ
-                isDefect: modelType === 'ORD' ? card.isDefect : false,
-                primaryImageURL: card.primaryImageURL,
-              })
-            }
-            validCount++
+            const existing = local.find(l => l.idName === card.idName && l.barcode === bc && (modelType !== 'ORD' || l.isDefect === card.isDefect))
+            if (existing) existing.qty += qty
+            else local.push({ idName: card.idName, barcode: bc, qty, name: card.cName || 'Без названия', cArt: card.cArt || '—', size: card.size || '—', isDefect: modelType === 'ORD' ? card.isDefect : false, primaryImageURL: card.primaryImageURL })
           }
-
           importErrors.value = errors
-
-          if (validCount > 0) {
-            if (errors.length > 0) {
-              toast.warning(`Импортировано частично: ${validCount}`)
-            } else {
-              toast.success(`Файл импортирован! Успешных позиций: ${validCount}`)
-            }
-            resolve(localAdded)
-          } else {
-            toast.error('Не удалось импортировать ни одной позиции')
-            resolve(null)
-          }
-        } catch {
-          toast.error('Ошибка структуры Excel файла')
-          resolve(null)
-        } finally {
-          target.value = ''
-        }
+          if (local.length > current.length || errors.length > 0) {
+            errors.length ? toast.warning('Импортировано частично') : toast.success('Файл импортирован!')
+            resolve(local)
+          } else { toast.error('Не удалось импортировать позиции'); resolve(null) }
+        } catch { toast.error('Ошибка структуры файла'); resolve(null) }
+        finally { target.value = '' }
       }
       reader.readAsArrayBuffer(file)
     })
   }
 
-  return {
-    importErrors,
-    handleExcelImport,
-  }
+  return { importErrors, handleExcelImport }
 }

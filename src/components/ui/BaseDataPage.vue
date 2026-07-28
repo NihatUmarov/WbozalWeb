@@ -33,22 +33,24 @@
     </div>
 
     <div class="w-full">
-      <BaseTable
-        ref="tableRef"
-        :items="items"
-        :columns="columns"
-        :loading="loading"
-        :loading-text="loadingText"
-        :empty-text="emptyText"
-        :empty-icon="emptyIcon"
-        :max-height="tableMaxHeight"
-        :row-class="rowClass"
-        @rowClick="onRowClick"
-      >
-        <template v-for="(_, name) in $slots as Record<string, any>" :key="name" #[name]="slotData">
-          <slot :name="name" v-bind="slotData || {}"></slot>
-        </template>
-      </BaseTable>
+      <slot :items="items" :columns="columns" :loading="loading" :register-table="registerExternalTable">
+        <BaseTable
+          ref="tableRef"
+          :items="items"
+          :columns="columns"
+          :loading="loading"
+          :loading-text="loadingText"
+          :empty-text="emptyText"
+          :empty-icon="emptyIcon"
+          :max-height="tableMaxHeight"
+          :row-class="rowClass"
+          @rowClick="onRowClick"
+        >
+          <template v-for="(_, name) in $slots as Record<string, any>" :key="name" #[name]="slotData">
+            <slot :name="name" v-bind="slotData || {}"></slot>
+          </template>
+        </BaseTable>
+      </slot>
     </div>
 
     <!-- ВСТРОЕННЫЙ МЕХАНИЗМ ШТОРКИ ДЛЯ РЕДАКТИРОВАНИЯ/ПРОСМОТРА СТРОКИ -->
@@ -65,9 +67,8 @@
 
 <script setup lang="ts" generic="T extends Record<string, any>">
 import { ref, computed } from 'vue'
-import BaseTable from './BaseTable.vue'
+import BaseTable, { type TableColumn } from './BaseTable.vue'
 import BaseDialog from './UnifiedUI.vue' // <-- Убедись, что путь к твоей модалке правильный
-import type { TableColumn } from './BaseTable.vue'
 
 export interface TabItem {
   label: string
@@ -108,26 +109,34 @@ const emit = defineEmits<{
 
 interface TableInstance {
   triggerExcelExport: (fileName: string) => void
-  filteredAndSortedItems: unknown[]
-  hasActiveFilters: boolean
+  filteredAndSortedItems?: unknown[]
+  hasActiveFilters?: boolean
 }
 
 const tableRef = ref<TableInstance | null>(null)
+const externalTableRef = ref<TableInstance | null>(null)
 
 // Состояние встроенной шторки
 const isRowModalOpen = ref(false)
 const selectedRowItem = ref<T | null>(null)
 
+const registerExternalTable = (instance: unknown) => {
+  externalTableRef.value = instance as TableInstance
+}
+
 const handleExportClick = () => {
-  if (tableRef.value?.triggerExcelExport) {
-    tableRef.value.triggerExcelExport(props.title)
+  const table = externalTableRef.value || tableRef.value
+  if (table?.triggerExcelExport) {
+    table.triggerExcelExport(props.title)
   }
 }
 
 const onRowClick = (item: T) => {
-  emit('rowClick', item) // Пробрасываем событие дальше, если кому-то нужно
-  selectedRowItem.value = item
-  isRowModalOpen.value = true
+  emit('rowClick', item)
+  if (slots['row-details']) {
+    selectedRowItem.value = item
+    isRowModalOpen.value = true
+  }
 }
 
 const closeRowModal = () => {
@@ -137,4 +146,10 @@ const closeRowModal = () => {
 
 const slots = defineSlots()
 const hasHeader = computed(() => props.hasHeader || !!slots['header-actions'])
+
+defineExpose({
+  openRowDetails: onRowClick,
+  closeRowDetails: closeRowModal,
+  triggerExport: handleExportClick
+})
 </script>

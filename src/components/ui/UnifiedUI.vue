@@ -65,15 +65,6 @@
     </Transition>
   </Teleport>
 
-  <Teleport to="body">
-    <TransitionGroup name="toast-fade" tag="div" class="toast-list">
-      <div v-for="toast in toasts" :key="toast.id" class="toast-card glass-effect">
-        <span :class="['toast-icon', `toast-icon--${toast.type}`]">{{ toast.icon }}</span>
-        <p class="toast-msg">{{ toast.message }}</p>
-      </div>
-    </TransitionGroup>
-  </Teleport>
-
   <div
     v-if="skeleton"
     :class="['skeleton', `skeleton--${skeleton.variant || 'text'}`]"
@@ -84,9 +75,7 @@
 </template>
 
 <script setup lang="ts">
-// Твой TS-код остается абсолютно без изменений
 import { watch, onUnmounted, computed } from 'vue'
-import { useToast } from '@/composables/useToast'
 
 interface Badge {
   text: string
@@ -133,16 +122,18 @@ const wrapperStyle = computed(() => {
 watch(
   () => props.isOpen,
   (val) => {
-    document.body.style.overflow = val ? 'hidden' : ''
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = val ? 'hidden' : ''
+    }
   },
   { immediate: true },
 )
 
 onUnmounted(() => {
-  document.body.style.overflow = ''
+  if (typeof document !== 'undefined') {
+    document.body.style.overflow = ''
+  }
 })
-
-const { toasts } = useToast()
 
 const skeletonStyle = computed(() => {
   if (!props.skeleton) return {}
@@ -155,35 +146,27 @@ const skeletonStyle = computed(() => {
 </script>
 
 <style scoped>
-/* --- Доработки для лучшего скролла --- */
-
-/* Контейнер модалки/шторки должен работать как Flexbox, чтобы внутренности правильно распределяли высоту */
 .modal-window-content,
 .sheet-inner-container {
   display: flex;
   flex-direction: column;
-  max-height: 85vh; /* Модалка или шторка не займет больше 85% высоты экрана */
-  overflow: hidden; /* Чтобы скругленные углы контейнера не резались внутренним контентом */
+  max-height: 85vh;
+  overflow: hidden;
 }
 
-/* Для BottomSheet на мобилках часто делают высоту побольше */
 .sheet-inner-container {
   max-height: 90vh;
-  background: var(--color-surface, #fff); /* на случай если обертка пустая */
-
-  /* ДОБАВЛЯЕМ СКРУГЛЕНИЕ ВЕРХНИХ УГЛОВ ТУТ */
+  background: var(--color-surface, #fff);
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
 }
 
-/* Фиксируем скролл только на контенте (Шапка и футер остаются прибитыми на месте) */
 .scrollable-content {
   flex: 1 1 auto;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS устройствах */
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Эстетика: кастомизация скроллбара (опционально, подгони под свой дизайн) */
 .scrollable-content::-webkit-scrollbar {
   width: 6px;
 }
@@ -192,27 +175,6 @@ const skeletonStyle = computed(() => {
   border-radius: 4px;
 }
 
-/* --- ОСТАЛЬНЫЕ ТВОИ СТИЛИ (БЕЗ ИЗМЕНЕНИЙ) --- */
-.toast-list {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 99999;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.toast-card {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 8px;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
-}
 .skeleton {
   background: var(--color-skeleton-bg, #e2e8f0);
   overflow: hidden;

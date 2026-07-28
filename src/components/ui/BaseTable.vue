@@ -3,479 +3,362 @@
     class="table-container"
     :style="{ maxHeight: maxHeight }"
     ref="scrollContainer"
-    style="overflow-y: auto; overflow-x: auto; position: relative"
+    style="overflow: auto; position: relative"
+    @scroll="handleScroll"
   >
-    <!-- Лоадер теперь рисуется ПОВЕРХ, не уничтожая скролл-контейнер -->
     <div
       v-if="loading"
-      class="table-state text-muted absolute inset-0 bg-surface/80 z-40 flex flex-col items-center justify-center"
-      style="
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(2px);
-      "
+      class="table-state absolute inset-0 bg-surface/80 z-40 flex flex-col items-center justify-center"
+      style="backdrop-filter: blur(2px); background: rgba(255, 255, 255, 0.7);"
     >
       <div class="global-spin"></div>
       <p class="text-sm font-medium mt-8">{{ loadingText }}</p>
     </div>
 
     <div class="table-responsive" style="position: relative; width: 100%">
-      <table
-        class="minimal-table resizable-table"
-        style="table-layout: fixed; width: 100%; min-width: 100%; border-collapse: collapse"
-      >
+      <div v-if="hasConfigurableColumns" class="table-settings-corner">
+        <button
+          class="settings-icon-btn"
+          :class="{ 'settings-icon-btn--active': showSettings }"
+          @click="showSettings = !showSettings"
+        >⚙️</button>
+        <Transition name="fade-slide">
+          <div v-if="showSettings" class="settings-popover card shadow-lg" v-click-outside="() => (showSettings = false)">
+            <div class="flex flex-col gap-12">
+              <h4 class="text-[10px] font-bold uppercase text-muted tracking-wider m-0">Колонки</h4>
+              <div class="flex flex-col gap-4">
+                <label v-for="opt in configOptions" :key="opt.key" class="toggle-row">
+                  <input type="checkbox" v-model="opt.model.value" />
+                  <span>{{ opt.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </div>
+
+      <table class="minimal-table resizable-table" style="table-layout: fixed; width: 100%; border-collapse: collapse">
         <colgroup>
-          <col
-            v-for="col in dynamicColumns"
-            :key="'col-' + String(col.key)"
-            :style="{ width: columnWidths[String(col.key)] || col.width || 'auto' }"
-          />
+          <col v-for="col in dynamicColumns" :key="String(col.key)" :style="{ width: columnWidths[String(col.key)] || col.width || 'auto' }" />
         </colgroup>
 
-        <!-- Шапка -->
-        <thead
-          style="
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            background-color: var(--bg-primary, #fff);
-            box-shadow: 0 1px 0 var(--border-color, #e2e8f0);
-          "
-        >
+        <thead style="position: sticky; top: 0; z-index: 30; background: #fff; box-shadow: 0 1px 0 #e2e8f0">
           <tr>
             <th
               v-for="(col, index) in dynamicColumns"
               :key="String(col.key)"
               :draggable="true"
               @dragstart="onDragStart(index, $event)"
-              @dragover.prevent="onDragOver(index)"
+              @dragover.prevent="dragOverIndex = index"
               @drop="onDrop(index)"
-              @dragenter.prevent
               :class="{ sortable: col.sortable, 'drag-over': dragOverIndex === index }"
-              :style="{
-                minWidth: col.minWidth || '60px',
-                position: 'relative',
-                userSelect: 'none',
-              }"
-              @click="col.sortable && handleSort(col.key)"
+              :style="{ minWidth: col.minWidth || '60px', position: 'relative', userSelect: 'none' }"
+              @click="col.sortable && handleSort(String(col.key))"
             >
-              <div
-                class="th-content cursor-move"
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  width: 100%;
-                "
-              >
+              <div class="th-content flex items-center justify-between w-full cursor-move">
                 <span class="truncate">{{ col.label }}</span>
-                <span
-                  v-if="col.sortable"
-                  class="sort-arrows"
-                  style="margin-left: 4px; flex-shrink: 0"
-                >
-                  <span
-                    :class="{
-                      active: currentSort.key === String(col.key) && currentSort.order === 'asc',
-                    }"
-                    >▲</span
-                  >
-                  <span
-                    :class="{
-                      active: currentSort.key === String(col.key) && currentSort.order === 'desc',
-                    }"
-                    >▼</span
-                  >
+                <span v-if="col.sortable" class="sort-arrows ml-4 shrink-0">
+                  <span :class="{ active: currentSort.key === String(col.key) && currentSort.order === 'asc' }">▲</span>
+                  <span :class="{ active: currentSort.key === String(col.key) && currentSort.order === 'desc' }">▼</span>
                 </span>
               </div>
-
-              <!-- Поиск -->
               <div v-if="col.filterable" class="filter-box" @click.stop>
-                <input
-                  type="text"
-                  placeholder="Поиск..."
-                  :value="filters[String(col.key)] || ''"
-                  @input="onFilterInput(String(col.key), $event)"
-                  class="input table-input"
-                  style="width: 100%"
-                />
+                <input type="text" placeholder="Поиск..." :value="filters[String(col.key)] || ''" @input="onFilterInput(String(col.key), $event)" class="input table-input w-full" />
               </div>
-
-              <!-- Ресайзер колонок -->
-              <div
-                class="resize-handle"
-                @mousedown.stop.prevent="startResize($event, index)"
-                style="
-                  position: absolute;
-                  right: 0;
-                  top: 0;
-                  bottom: 0;
-                  width: 6px;
-                  cursor: col-resize;
-                  z-index: 10;
-                "
-              ></div>
+              <div class="resize-handle absolute right-0 top-0 bottom-0 w-[6px] cursor-col-resize z-10" @mousedown.stop.prevent="startResize($event, index)"></div>
             </th>
           </tr>
         </thead>
 
         <tbody>
-          <!-- СЛУЧАЙ 1: В базе пусто -->
-          <tr v-if="items.length === 0">
-            <td :colspan="dynamicColumns.length" class="text-center" style="padding: 40px 20px">
-              <div
-                style="
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                "
-                class="text-muted"
-              >
-                <span class="empty-icon" style="font-size: 24px; margin-bottom: 8px">{{
-                  emptyIcon
-                }}</span>
+          <tr v-if="totalHeight > 0" :style="{ height: `${offsetTop}px` }"><td :colspan="dynamicColumns.length" style="padding: 0; border: none"></td></tr>
+
+          <tr v-if="!loading && items.length === 0">
+            <td :colspan="dynamicColumns.length" class="py-40 text-muted" style="border: none">
+              <div class="sticky left-0 flex flex-col items-center justify-center" :style="{ width: `${viewportWidth}px` }">
+                <span class="text-2xl mb-8 block">{{ emptyIcon }}</span>
                 <p class="text-sm font-medium">{{ emptyText }}</p>
               </div>
             </td>
           </tr>
-
-          <!-- СЛУЧАЙ 2: Поиск выдал 0 результатов -->
-          <tr v-else-if="filteredAndSortedItems.length === 0">
-            <td :colspan="dynamicColumns.length" class="text-center" style="padding: 40px 20px">
-              <div
-                style="
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                "
-                class="text-muted"
-              >
-                <span class="empty-icon" style="font-size: 24px; margin-bottom: 8px">🔍</span>
-                <p class="text-sm font-medium">Ничего не найдено по вашему запросу</p>
+          <tr v-else-if="!loading && filteredAndSortedItems.length === 0">
+            <td :colspan="dynamicColumns.length" class="py-40 text-muted" style="border: none">
+              <div class="sticky left-0 flex flex-col items-center justify-center" :style="{ width: `${viewportWidth}px` }">
+                <span class="text-2xl mb-8 block">🔍</span>
+                <p class="text-sm font-medium">Ничего не найдено</p>
               </div>
             </td>
           </tr>
 
-          <!-- СЛУЧАЙ 3: Полный мгновенный вывод -->
           <tr
             v-else
-            v-for="(item, index) in filteredAndSortedItems"
+            v-for="(item, index) in visibleItems"
             :key="getItemId(item, index)"
             :class="[rowClass ? rowClass(item) : '', 'row-clickable']"
-            :style="{
-              height: rowHeight + 'px',
-              containIntrinsicSize: `auto ${rowHeight}px`,
-              contentVisibility: 'auto',
-            }"
+            :style="{ height: `${rowHeight}px` }"
             @click="handleRowClick(item, $event)"
           >
-            <td
-              v-for="col in dynamicColumns"
-              :key="String(col.key)"
-              class="truncate-cell overflow-hidden"
-            >
-              <slot
-                :name="`cell(${String(col.key)})`"
-                :item="item"
-                :value="getCellValue(item, col.key)"
-              >
-                <span class="truncate block">{{ getCellValue(item, col.key) ?? '—' }}</span>
+            <td v-for="col in dynamicColumns" :key="String(col.key)" class="truncate">
+              <slot :name="`cell(${String(col.key)})`" :item="item" :index="index" :value="item[String(col.key)]">
+                {{ item[String(col.key)] ?? '—' }}
               </slot>
             </td>
           </tr>
+
+          <tr v-if="totalHeight > 0" :style="{ height: `${offsetBottom}px` }"><td :colspan="dynamicColumns.length" style="padding: 0; border: none"></td></tr>
         </tbody>
       </table>
     </div>
+
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showExcelModal" class="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-16" @click="showExcelModal = false">
+          <div class="card w-full max-w-[400px] flex flex-col gap-20 p-24" @click.stop>
+            <div class="flex flex-col gap-8">
+              <h3 class="text-lg font-bold m-0">Экспорт в Excel</h3>
+              <p class="text-sm text-muted">У вас применены фильтры. Что выгрузить?</p>
+            </div>
+            <div class="flex justify-end gap-12">
+              <button class="btn btn-secondary flex-1" @click="generateExcel(false); showExcelModal = false">Все данные</button>
+              <button class="btn btn-primary flex-1" @click="generateExcel(true); showExcelModal = false">С фильтрами</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
-<script setup lang="ts" generic="T extends Record<string, unknown>">
-import { ref, computed, watch } from 'vue'
+<script lang="ts">
+import { h, defineComponent, computed as vueComputed } from 'vue'
+
+export interface TableColumn<T> {
+  key: keyof T | string; label: string; sortable?: boolean; filterable?: boolean; width?: string; minWidth?: string; exportFormatter?: (v: unknown, item: T) => string | number
+}
+
+export const AppBadge = defineComponent({
+  props: { variant: String, text: [String, Number] },
+  setup(p) { return () => h('span', { class: ['badge', `badge--${p.variant || 'info'}`] }, p.text) }
+})
+
+export const AppTableCell = defineComponent({
+  props: { value: [String, Number, Object, null], mono: Boolean, bold: Boolean, size: { type: String, default: 'sm' }, color: { type: String, default: 'primary' }, align: { type: String, default: 'start' }, bg: { type: String, default: 'none' }, border: Boolean, px: Number, py: Number },
+  setup(p) {
+    const cls = vueComputed(() => [
+      'flex items-center min-w-0 truncate',
+      `text-${p.size}`, p.bold ? 'font-bold' : '', `text-${p.color}`, `justify-${p.align}`,
+      p.bg !== 'none' ? `bg-${p.bg}` : '', p.border ? 'border-dark' : '',
+      p.px ? `px-${p.px}` : '', p.py ? `py-${p.py}` : '',
+      p.mono ? 'font-mono tabular-nums' : ''
+    ])
+    return () => h('div', { class: cls.value, title: p.value != null ? String(p.value) : '' }, p.value != null ? String(p.value) : '')
+  }
+})
+</script>
+
+<script setup lang="ts" generic="T extends Record<string, any>">
+import { ref, computed, watch, onMounted, type DirectiveBinding } from 'vue'
 import * as XLSX from 'xlsx'
 import { useViewSettings } from '@/composables/useViewSettings'
 
-export interface TableColumn<T> {
-  key: keyof T | string | number | symbol
-  label: string
-  sortable?: boolean
-  filterable?: boolean
-  width?: string
-  minWidth?: string
-  exportFormatter?: (value: unknown, item: T) => string | number
-}
-
-const props = withDefaults(
-  defineProps<{
-    items: T[]
-    columns: TableColumn<T>[]
-    loading?: boolean
-    loadingText?: string
-    emptyText?: string
-    emptyIcon?: string
-    maxHeight?: string
-    rowClass?: (item: T) => string
-    rowHeight?: number
-  }>(),
-  {
-    loading: false,
-    loadingText: 'Загрузка данных...',
-    emptyText: 'Данные не найдены',
-    emptyIcon: '📂',
-    maxHeight: 'calc(100vh - 290px)',
-    rowHeight: 64,
-  },
-)
+const props = withDefaults(defineProps<{
+  items: T[]; columns: TableColumn<T>[]; loading?: boolean; loadingText?: string; emptyText?: string; emptyIcon?: string; maxHeight?: string; rowClass?: (item: T) => string; rowHeight?: number
+}>(), {
+  loading: false, loadingText: 'Загрузка...', emptyText: 'Нет данных', emptyIcon: '📂', maxHeight: 'calc(100vh - 290px)', rowHeight: 64
+})
 
 const emit = defineEmits<{ (e: 'rowClick', item: T): void }>()
 const { showImage, showArt, showWbArt, showSize } = useViewSettings()
-
-const getCellValue = (item: T, key: keyof T | string | number | symbol): unknown => {
-  return (item as Record<string, unknown>)[key as string]
-}
-
-const columnOrder = ref<TableColumn<T>[]>([])
-const columnWidths = ref<Record<string, string>>({})
-
-watch(
-  () => props.columns.map((c) => String(c.key)).join(','),
-  () => {
-    columnOrder.value = [...props.columns]
-  },
-  { immediate: true },
-)
-
-const dynamicColumns = computed(() => {
-  return columnOrder.value.filter((col) => {
-    const keyStr = String(col.key)
-    if (keyStr === 'primaryImageURL' && !showImage.value) return false
-    if (keyStr === 'cArt' && !showArt.value) return false
-    if (keyStr === 'cArtWB' && !showWbArt.value) return false
-    if (keyStr === 'size' && !showSize.value) return false
-    return true
-  })
-})
-
-const dragOverIndex = ref<number | null>(null)
-let draggedIndex: number | null = null
-
-const onDragStart = (index: number, event: DragEvent) => {
-  draggedIndex = index
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move'
-  }
-}
-
-const onDragOver = (index: number) => {
-  dragOverIndex.value = index
-}
-
-const onDrop = (index: number) => {
-  if (draggedIndex !== null && draggedIndex !== index) {
-    const targetArray = [...columnOrder.value]
-    const [movedItem] = targetArray.splice(draggedIndex, 1)
-    targetArray.splice(index, 0, movedItem)
-    columnOrder.value = targetArray
-  }
-  dragOverIndex.value = null
-  draggedIndex = null
-}
-
 const scrollContainer = ref<HTMLElement | null>(null)
+const scrollTop = ref(0)
+const viewportHeight = ref(800)
+const viewportWidth = ref(1000)
 
-// Управление скроллом контейнера
-const getScrollTop = (): number => {
-  return scrollContainer.value ? scrollContainer.value.scrollTop : 0
-}
+const configOptions = [
+  { key: 'primaryImageURL', label: 'Фото', model: showImage },
+  { key: 'cArt', label: 'Артикул', model: showArt },
+  { key: 'cArtWB', label: 'Арт. МП', model: showWbArt },
+  { key: 'size', label: 'Размер', model: showSize }
+]
 
-const setScrollTop = (top: number): void => {
+const handleScroll = () => { if (scrollContainer.value) scrollTop.value = scrollContainer.value.scrollTop }
+const updateViewport = () => {
   if (scrollContainer.value) {
-    scrollContainer.value.scrollTop = top
+    viewportHeight.value = scrollContainer.value.clientHeight
+    viewportWidth.value = scrollContainer.value.clientWidth
   }
-}
-
-const startResize = (event: MouseEvent, colIndex: number) => {
-  const currentKey = String(dynamicColumns.value[colIndex].key)
-  const nextCol = dynamicColumns.value[colIndex + 1]
-  if (!nextCol) return
-
-  const nextKey = String(nextCol.key)
-  const thElements = scrollContainer.value?.querySelectorAll('th')
-  if (!thElements) return
-
-  const currentTh = thElements[colIndex]
-  const nextTh = thElements[colIndex + 1]
-
-  const startWidthCurrent = currentTh.getBoundingClientRect().width
-  const startWidthNext = nextTh.getBoundingClientRect().width
-  const startX = event.pageX
-
-  const onMouseMove = (moveEvent: MouseEvent) => {
-    requestAnimationFrame(() => {
-      const deltaX = moveEvent.pageX - startX
-      const newWidthCurrent = Math.max(startWidthCurrent + deltaX, 60)
-      const newWidthNext = Math.max(startWidthNext - deltaX, 60)
-
-      columnWidths.value[currentKey] = `${newWidthCurrent}px`
-      columnWidths.value[nextKey] = `${newWidthNext}px`
-    })
-  }
-
-  const onMouseUp = () => {
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-    document.body.style.cursor = ''
-  }
-
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
-  document.body.style.cursor = 'col-resize'
 }
 
 const filters = ref<Record<string, string>>({})
-let filterTimeout: ReturnType<typeof setTimeout>
-
-const onFilterInput = (key: string, event: Event) => {
-  const target = event.target as HTMLInputElement
-  clearTimeout(filterTimeout)
-  filterTimeout = setTimeout(() => {
-    filters.value = { ...filters.value, [key]: target.value }
-  }, 120)
-}
-
 const currentSort = ref<{ key: string | null; order: 'asc' | 'desc' }>({ key: null, order: 'asc' })
 
-const handleSort = (key: keyof T | string | number | symbol) => {
-  const stringKey = String(key)
-  if (currentSort.value.key === stringKey) {
-    currentSort.value.order = currentSort.value.order === 'asc' ? 'desc' : 'asc'
-  } else {
-    currentSort.value.key = stringKey
-    currentSort.value.order = 'asc'
-  }
-}
-
 const filteredAndSortedItems = computed(() => {
-  let result = [...props.items]
-  const filterKeys = Object.keys(filters.value)
+  const rawItems = props.items
+  if (!rawItems.length) return []
 
-  if (filterKeys.length > 0) {
-    result = result.filter((item) => {
-      for (const key of filterKeys) {
-        const searchTerm = filters.value[key]?.toLowerCase().trim()
-        if (!searchTerm) continue
+  let res = [...rawItems]
+  const filterEntries = Object.entries(filters.value).filter(([_, v]) => v && v.trim() !== '')
 
-        if (key === 'barcodes' || key === 'barcode') {
-          const bcArray = Array.isArray(item.barcodes) ? item.barcodes : []
-          const bcString = String(item.barcode || '')
-          const match =
-            bcArray.some((val: unknown) =>
-              String(val ?? '')
-                .toLowerCase()
-                .includes(searchTerm),
-            ) || bcString.toLowerCase().includes(searchTerm)
-          if (!match) return false
-        } else {
-          const value = getCellValue(item, key)
-          if (Array.isArray(value)) {
-            if (
-              !value.some((val: unknown) =>
-                String(val ?? '')
-                  .toLowerCase()
-                  .includes(searchTerm),
-              )
-            )
-              return false
-          } else {
-            if (
-              !String(value ?? '')
-                .toLowerCase()
-                .includes(searchTerm)
-            )
-              return false
-          }
-        }
+  if (filterEntries.length) {
+    res = res.filter(item => filterEntries.every(([k, q]) => {
+      const query = q.toLowerCase()
+      const val = item[k]
+
+      if (k === 'barcodes' || k === 'barcode') {
+        const bcs = Array.isArray(item.barcodes) ? item.barcodes : [String(item.barcode || '')]
+        return bcs.some(b => String(b || '').toLowerCase().includes(query))
       }
-      return true
-    })
+      return String(val ?? '').toLowerCase().includes(query)
+    }))
   }
 
   const { key, order } = currentSort.value
   if (key) {
-    result.sort((a, b) => {
-      const rawA = getCellValue(a, key) ?? ''
-      const rawB = getCellValue(b, key) ?? ''
-      if (typeof rawA === 'number' && typeof rawB === 'number') {
-        return order === 'asc' ? rawA - rawB : rawB - rawA
-      }
-      return order === 'asc'
-        ? String(rawA).localeCompare(String(rawB), undefined, { numeric: true })
-        : String(rawB).localeCompare(String(rawA), undefined, { numeric: true })
+    res.sort((a, b) => {
+      const vA = a[key as keyof T], vB = b[key as keyof T]
+      if (vA === vB) return 0
+      if (vA === null || vA === undefined) return 1
+      if (vB === null || vB === undefined) return -1
+
+      const comp = vA > vB ? 1 : -1
+      return order === 'asc' ? comp : -comp
     })
   }
-
-  return result
+  return res
 })
 
-const getItemId = (item: T, index: number) => {
-  if ('id' in item) return item.id as string | number
-  if ('idName' in item) return item.idName as string | number
-  return index
+const visibleItems = computed(() => {
+  const items = filteredAndSortedItems.value
+  if (!items.length) return []
+
+  const start = Math.max(0, Math.min(
+    Math.floor(scrollTop.value / props.rowHeight) - 40,
+    items.length - 1
+  ))
+  const count = Math.ceil(viewportHeight.value / props.rowHeight) + 80
+  return items.slice(start, start + count)
+})
+
+const offsetTop = computed(() => {
+  const items = filteredAndSortedItems.value
+  if (!items.length) return 0
+  const start = Math.max(0, Math.min(
+    Math.floor(scrollTop.value / props.rowHeight) - 40,
+    items.length - 1
+  ))
+  return start * props.rowHeight
+})
+
+const totalHeight = computed(() => filteredAndSortedItems.value.length * props.rowHeight)
+const offsetBottom = computed(() => Math.max(0, totalHeight.value - offsetTop.value - (visibleItems.value.length * props.rowHeight)))
+
+const handleSort = (k: string) => {
+  if (currentSort.value.key === k) currentSort.value.order = currentSort.value.order === 'asc' ? 'desc' : 'asc'
+  else { currentSort.value.key = k; currentSort.value.order = 'asc' }
 }
 
-const handleRowClick = (item: T, event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (
-    ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) ||
-    target.closest('button') ||
-    target.closest('.btn')
-  ) {
-    return
+const showSettings = ref(false); const dragOverIndex = ref<number | null>(null); let draggedIndex: number | null = null
+const columnOrder = ref<TableColumn<T>[]>([]); const columnWidths = ref<Record<string, string>>({})
+const hasConfigurableColumns = computed(() => props.columns.some(c => ['primaryImageURL', 'cArt', 'cArtWB', 'size'].includes(String(c.key))))
+
+watch(() => props.items.length, (newLen, oldLen) => {
+  if (newLen < oldLen && scrollContainer.value) {
+    scrollContainer.value.scrollTop = 0
+    scrollTop.value = 0
   }
+})
+
+watch(() => props.columns, (c) => { columnOrder.value = [...c] }, { immediate: true })
+const dynamicColumns = computed(() => columnOrder.value.filter(c => {
+  const k = String(c.key); if (k === 'primaryImageURL') return showImage.value
+  if (k === 'cArt') return showArt.value; if (k === 'cArtWB') return showWbArt.value
+  if (k === 'size') return showSize.value; return true
+}))
+
+const onDragStart = (i: number, e: DragEvent) => { draggedIndex = i; if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move' }
+const onDrop = (i: number) => {
+  if (draggedIndex !== null && draggedIndex !== i) {
+    const arr = [...columnOrder.value]; const [m] = arr.splice(draggedIndex, 1); arr.splice(i, 0, m); columnOrder.value = arr
+  }
+  dragOverIndex.value = null; draggedIndex = null
+}
+
+const startResize = (e: MouseEvent, i: number) => {
+  const k1 = String(dynamicColumns.value[i].key), k2 = String(dynamicColumns.value[i+1]?.key)
+  if (!k2) return
+  const ths = scrollContainer.value?.querySelectorAll('th'); if (!ths) return
+  const w1 = ths[i].offsetWidth, w2 = ths[i+1].offsetWidth, x = e.pageX
+  const move = (me: MouseEvent) => {
+    const d = me.pageX - x
+    columnWidths.value[k1] = `${Math.max(w1 + d, 60)}px`; columnWidths.value[k2] = `${Math.max(w2 - d, 60)}px`
+  }
+  const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
+  document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
+}
+
+const filterTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
+const onFilterInput = (k: string, e: Event) => {
+  const v = (e.target as HTMLInputElement).value
+  if (filterTimeouts.has(k)) clearTimeout(filterTimeouts.get(k)!)
+  filterTimeouts.set(k, setTimeout(() => {
+    filters.value = { ...filters.value, [k]: v }
+    filterTimeouts.delete(k)
+  }, 150))
+}
+
+const showExcelModal = ref(false); let currentExportName = 'data'
+const triggerExcelExport = (n: string) => {
+  currentExportName = n
+  const activeFilters = Object.values(filters.value).some(v => v && v.trim() !== '')
+  if (activeFilters) {
+    showExcelModal.value = true
+  } else {
+    generateExcel(false)
+  }
+}
+const generateExcel = (f: boolean) => {
+  const data = f ? filteredAndSortedItems.value : props.items
+  const rows = data.map(item => {
+    const r: Record<string, string | number> = {}
+    props.columns.forEach(c => {
+      const val = item[String(c.key)]
+      r[c.label] = c.exportFormatter ? c.exportFormatter(val, item) : String(val ?? '—')
+    })
+    return r
+  })
+  const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Export')
+  XLSX.writeFile(wb, `${currentExportName}_${new Date().toISOString().slice(0, 10)}.xlsx`)
+}
+
+const getItemId = (item: T, i: number) => item.idName || item.id || i
+const handleRowClick = (item: T, e: MouseEvent) => {
+  if (['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).closest('button')) return
   emit('rowClick', item)
 }
 
-const showExcelModal = ref(false)
-const hasActiveFilters = computed(() =>
-  Object.values(filters.value).some((val) => val && val.trim() !== ''),
-)
-let currentExportFileName = 'export_data'
-
-const triggerExcelExport = (fileName: string) => {
-  currentExportFileName = fileName
-  if (hasActiveFilters.value) showExcelModal.value = true
-  else generateExcel(false)
+const vClickOutside = {
+  mounted(el: HTMLElement & { _clickOutside?: (e: Event) => void }, b: DirectiveBinding) {
+    el._clickOutside = (e: Event) => { if (!(el === e.target || el.contains(e.target as Node))) (b.value as (e: Event) => void)(e) }
+    document.addEventListener('mousedown', el._clickOutside)
+  },
+  unmounted(el: HTMLElement & { _clickOutside?: (e: Event) => void }) {
+    if (el._clickOutside) document.removeEventListener('mousedown', el._clickOutside)
+  }
 }
 
-const generateExcel = (useFilters: boolean) => {
-  const dataToExport = useFilters ? filteredAndSortedItems.value : props.items
-  if (!dataToExport.length) return
-  const excelRows = dataToExport.map((item: T) => {
-    const row: Record<string, string | number | boolean> = {}
-    props.columns.forEach((col) => {
-      const rawValue = getCellValue(item, col.key)
-      if (col.exportFormatter) row[col.label] = col.exportFormatter(rawValue, item)
-      else if (typeof rawValue === 'boolean') row[col.label] = rawValue ? 'Да' : 'Нет'
-      else row[col.label] = (rawValue as string | number) ?? '—'
-    })
-    return row
-  })
-  const worksheet = XLSX.utils.json_to_sheet(excelRows)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Export')
-  XLSX.writeFile(workbook, `${currentExportFileName}_${new Date().toISOString().slice(0, 10)}.xlsx`)
-}
+onMounted(() => { updateViewport(); window.addEventListener('resize', updateViewport) })
 
-defineExpose({
-  hasActiveFilters,
-  filteredAndSortedItems,
-  triggerExcelExport,
-  getScrollTop,
-  setScrollTop,
-})
+defineExpose({ triggerExcelExport, getScrollTop: () => scrollTop.value, setScrollTop: (t: number) => { if (scrollContainer.value) scrollContainer.value.scrollTop = t } })
 </script>
+
+<style scoped>
+.table-settings-corner { position: absolute; top: 8px; right: 8px; z-index: 35; }
+.settings-icon-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: var(--color-background-secondary); border: 1px solid var(--color-border-dark); border-radius: 4px; cursor: pointer; opacity: 0.6; transition: 0.2s; }
+.settings-icon-btn:hover, .settings-icon-btn--active { opacity: 1; background: #fff; border-color: var(--color-primary); }
+.settings-popover { position: absolute; top: 100%; right: 0; width: 160px; padding: 12px; z-index: 100; margin-top: 6px; }
+.toggle-row { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 0; font-size: 12px; }
+.minimal-table th:last-child { padding-right: 40px !important; }
+.sort-arrows span { opacity: 0.2; font-size: 10px; }
+.sort-arrows span.active { opacity: 1; color: var(--color-primary); }
+</style>

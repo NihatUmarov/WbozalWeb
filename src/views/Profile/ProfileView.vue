@@ -35,70 +35,11 @@
 
       <!-- Основной контент -->
       <template v-else>
-        <!-- Блок настроек: заменили gap-20 на gap-16 для системности -->
-        <div class="card flex flex-col gap-16 p-16">
-          <div class="flex items-center gap-12 pb-12 border-b">
-            <h2 class="text-base font-bold text-primary m-0">Настройки отображения таблиц</h2>
-          </div>
-
-          <div class="flex flex-col gap-12">
-            <label class="input-label">
-              Выберите колонки, которые должны отображаться в таблицах товаров:
-            </label>
-
-            <div class="flex flex-wrap items-center gap-12 mt-4">
-              <button
-                type="button"
-                :class="[
-                  'btn btn-xs px-12 h-32 rounded-6 transition-all font-medium',
-                  showImage ? 'btn-primary shadow-sm' : 'btn-secondary text-muted',
-                ]"
-                @click="showImage = !showImage"
-              >
-                {{ showImage ? 'Фото: Показываю' : 'Фото: Скрыто' }}
-              </button>
-
-              <button
-                type="button"
-                :class="[
-                  'btn btn-xs px-12 h-32 rounded-6 transition-all font-medium',
-                  showArt ? 'btn-primary shadow-sm' : 'btn-secondary text-muted',
-                ]"
-                @click="showArt = !showArt"
-              >
-                {{ showArt ? 'Артикул: Показываю' : 'Артикул: Скрыто' }}
-              </button>
-
-              <button
-                type="button"
-                :class="[
-                  'btn btn-xs px-12 h-32 rounded-6 transition-all font-medium',
-                  showWbArt ? 'btn-primary shadow-sm' : 'btn-secondary text-muted',
-                ]"
-                @click="showWbArt = !showWbArt"
-              >
-                {{ showWbArt ? 'Арт. WB: Показываю' : 'Арт. WB: Скрыто' }}
-              </button>
-
-              <button
-                type="button"
-                :class="[
-                  'btn btn-xs px-12 h-32 rounded-6 transition-all font-medium',
-                  showSize ? 'btn-primary shadow-sm' : 'btn-secondary text-muted',
-                ]"
-                @click="showSize = !showSize"
-              >
-                {{ showSize ? 'Размер: Показываю' : 'Размер: Скрыто' }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Блок интеграций -->
+        <!-- Блок интеграций (Настройки таблиц уехали в саму таблицу) -->
         <div class="card flex flex-col gap-16 p-16">
           <div class="flex items-center gap-12 pb-12 border-b">
             <h2 class="text-base font-bold text-primary m-0">
-              Интеграция с личными кабинетами маркетплейсов
+              Интеграция с маркетплейсами
             </h2>
           </div>
 
@@ -294,14 +235,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue' // <-- ДОБАВИЛИ: computed
+import { ref, reactive, onMounted, computed } from 'vue'
 import { jurpersonService } from '@/api/jurpersonService'
 import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'
-import type { UpdateJurpersonRequest, SaveMarketplaceTokenRequest } from '@/api/types'
-
-import { useViewSettings } from '@/composables/useViewSettings' // <-- ДОБАВИЛИ: сам импорт хука настроек
 import { adminService } from '@/api/adminService'
+import type { UpdateJurpersonRequest, SaveMarketplaceTokenRequest } from '@/api/types'
 import UserManagementModal from './UserManagementModal.vue'
 import BaseModal from '@/components/ui/UnifiedUI.vue'
 
@@ -313,8 +252,6 @@ const { loading, run } = useAsync()
 const { loading: isSaving, run: runSave } = useAsync()
 const { loading: isSavingToken, run: runSaveToken } = useAsync()
 const { loading: loadingToken, run: runToken } = useAsync()
-
-const { showImage, showArt, showWbArt, showSize } = useViewSettings()
 
 const permissions = computed(() => adminService.permissions.value)
 
@@ -344,7 +281,6 @@ const tokensData = reactive({
 
 const fetchCurrentTabToken = (tab: 'WB' | 'OZ'): void => {
   runToken(async () => {
-    // Вызов скорректирован под сигнатуру примитива без лишней обертки-объекта
     const t = await jurpersonService.getMarketplaceTokenByType(tab)
     tokensData[tab].value = t?.value || ''
     tokensData[tab].appKey = t?.appKey || ''
@@ -360,8 +296,6 @@ const setTab = (tab: 'WB' | 'OZ'): void => {
 const loadProfileData = (): void => {
   run(
     async () => {
-      // Строку await fetchPermissions() убрали, так как стора больше нет
-
       const jurData = await jurpersonService.getJurpersons()
       const activeId = jurData.activeId || jurData.jurpersons?.[0]?.idJurperson
       if (activeId) localStorage.setItem('selected_jurperson_id', activeId.toString())

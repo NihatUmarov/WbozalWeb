@@ -2,20 +2,16 @@
   <BaseModal :is-open="isOpen" variant="sheet" max-width="5xl" @update:is-open="close">
     <template #header>
       <div class="flex items-center gap-12">
-        <span
-          :class="[
-            'badge',
-            filterDefect && modelType === 'ORD' ? 'badge--error' : 'badge--success',
-          ]"
-        >
-          {{ filterDefect && modelType === 'ORD' ? 'Брак' : 'Создание' }}
-        </span>
+        <AppBadge
+          :variant="filterDefect && modelType === 'ORD' ? 'error' : 'success'"
+          :text="filterDefect && modelType === 'ORD' ? 'Брак' : 'Создание'"
+        />
         <h2 class="m-0 text-xl font-bold text-primary">
           {{
             modelType === 'FBO'
               ? 'Новый приход'
               : filterDefect
-                ? 'Новая отгрузка braka'
+                ? 'Новая отгрузка брака'
                 : 'Новая отгрузка'
           }}
         </h2>
@@ -32,51 +28,14 @@
 
     <div v-else class="flex flex-col gap-24 py-12">
       <section class="w-full">
-        <div class="flex items-start gap-16 w-full">
-          <div class="input-group flex-shrink-0" style="width: 200px">
-            <label class="input-label text-muted font-medium text-xs mb-6 block">
-              {{ modelType === 'FBO' ? 'Планируемая дата прихода' : 'Планируемая дата отгрузки' }}
-            </label>
-            <input v-model="formHeader.eventDate" type="date" class="input w-full" />
-          </div>
-
-          <div v-if="modelType === 'ORD'" class="input-group flex-shrink-0" style="width: 260px">
-            <label class="input-label text-muted font-medium text-xs mb-6 block">
-              Направление (Куда / Откуда)
-            </label>
-            <input
-              v-model="formHeader.direction"
-              type="text"
-              placeholder="Коледино, Озон, г. Москва..."
-              class="input w-full"
-            />
-          </div>
-
-          <div class="input-group flex-1 textarea-container-wrapper">
-            <label class="input-label text-muted font-medium text-xs mb-6 block">
-              Техническое задание
-            </label>
-            <div class="textarea-relative-box" style="height: 38px">
-              <textarea
-                v-model="formHeader.comment"
-                placeholder="Дополнительная информация для склада..."
-                class="input absolute top-0 left-0 w-full expanding-textarea"
-                rows="1"
-              ></textarea>
-            </div>
-          </div>
-        </div>
+        <InvoiceHeaderFields v-model="formHeader" :model-type="modelType" />
       </section>
 
       <section class="flex flex-col gap-16">
         <div class="flex items-center justify-between gap-12 flex-wrap pb-8 border-b">
           <div class="flex items-center gap-16">
             <h3 class="text-lg font-bold text-primary m-0">Каталог товаров</h3>
-            <span
-              class="text-xs font-bold text-success bg-success-subtle border-success px-6 py-4 rounded-6 tabular-nums"
-            >
-              Добавлено: {{ addedItems.length }} поз. ({{ totalAddedQty }} шт.)
-            </span>
+            <AppBadge variant="success" :text="`Добавлено: ${addedItems.length} поз. (${totalAddedQty} шт.)`" />
             <button
               type="button"
               class="btn btn-secondary btn-xs flex items-center justify-center"
@@ -95,13 +54,7 @@
                 :disabled="loading"
                 @click="triggerExcelInput"
               >
-                <img
-                  src="@/components/icons/office-exel.svg"
-                  alt="Excel"
-                  width="16"
-                  height="16"
-                  style="object-fit: contain"
-                />
+                <img src="@/components/icons/office-exel.svg" alt="Excel" width="16" height="16" />
                 <span>Загрузить из Excel</span>
               </button>
 
@@ -162,22 +115,17 @@
             :hide-columns="['irQuant', 'iBronTask', 'defectQuant']"
             :extra-columns="createActionColumns"
           >
-            <template #cell(stock)="{ item }: { item: any }">
-              <span
-                :class="[
-                  'text-xs font-bold bg-success-subtle border-success px-6 py-4 rounded-6 tabular-nums',
-                  calculateAvailableToShip(item) > 0
-                    ? 'text-success'
-                    : 'text-error bg-error-subtle border-error',
-                ]"
-              >
-                {{ calculateAvailableToShip(item) }} шт.
-              </span>
+            <template #cell(stock)="{ item }: { item: Product }">
+              <div class="flex justify-center">
+                <AppBadge
+                  :variant="calculateAvailableToShip(item) > 0 ? 'success' : 'error'"
+                  :text="formatQuantity(calculateAvailableToShip(item))"
+                />
+              </div>
             </template>
 
-            <template #cell(actions)="{ item }: { item: any }">
+            <template #cell(actions)="{ item }: { item: Product }">
               <div class="flex items-center justify-end gap-12 w-full">
-                <!-- Срок годности отображается ТОЛЬКО при создании Прихода (FBO) -->
                 <div v-if="modelType === 'FBO'" class="flex flex-col items-start gap-4">
                   <span class="text-[10px] text-muted font-medium">Срок годности</span>
                   <input
@@ -189,9 +137,7 @@
                 </div>
 
                 <div class="flex flex-col items-start gap-4">
-                  <span v-if="modelType === 'FBO'" class="text-[10px] text-muted font-medium"
-                    >Кол-во</span
-                  >
+                  <span v-if="modelType === 'FBO'" class="text-[10px] text-muted font-medium">Кол-во</span>
                   <input
                     type="number"
                     min="1"
@@ -237,15 +183,18 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue'
 import { stockService } from '@/api/InvoiceService'
-import { catalogService, type CatalogItem } from '@/api/catalogService'
+import { productService } from '@/api/productService'
 import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'
 import { useExcelImport, type LocalPosition } from '@/composables/useExcelImport'
+import { formatQuantity } from '@/utils/formatters'
+import InvoiceHeaderFields from '@/components/ui/InvoiceHeaderForm.vue'
 import SharedProductTable from '@/components/ui/CatalogTable.vue'
 import ExcelErrorsModal from '@/components/modals/ExcelErrorsModal.vue'
 import DocumentCompositionModal from '@/components/modals/DocumentCompositionModal.vue'
-import type { TableColumn } from '@/components/ui/BaseTable.vue'
+import { AppBadge, type TableColumn } from '@/components/ui/BaseTable.vue'
 import type { UnifiedProductItem } from '@/composables/useExcelImport'
+import type { Product } from '@/api/types'
 import BaseModal from '@/components/ui/UnifiedUI.vue'
 
 const props = defineProps<{ isOpen: boolean; modelType: 'FBO' | 'ORD' }>()
@@ -257,7 +206,7 @@ const inputExpirations = reactive<Record<number, string>>({})
 const { loading, run: runLoadCards } = useAsync()
 const { loading: isSaving, run: runSaveDoc } = useAsync()
 
-const availableCards = ref<CatalogItem[]>([])
+const availableCards = ref<Product[]>([])
 const addedItems = ref<LocalPosition[]>([])
 const filterDefect = ref(false)
 const formHeader = reactive({ phone: '', comment: '', eventDate: '', direction: '' })
@@ -268,24 +217,18 @@ const excelInputRef = ref<HTMLInputElement | null>(null)
 
 const unifiedCardsForImport = computed<UnifiedProductItem[]>(() => {
   return availableCards.value.map((card) => ({
-    idName: card.idName,
+    ...card,
     cName: card.cName || 'Без названия',
     cArt: card.cArt || '—',
     size: card.size || '—',
-    irQuant: card.irQuant || 0,
-    iBronTask: card.iBronTask || 0,
-    defectQuant: card.defectQuant ?? 0,
-    barcodes: card.barcodes || (card.barcode ? [card.barcode] : []),
-    isDefect: card.isDefect ?? false,
-    primaryImageURL: card.primaryImageURL,
   }))
 })
 
-const createActionColumns = computed<TableColumn<CatalogItem>[]>(() => {
+const createActionColumns = computed<TableColumn<Product>[]>(() => {
   return [
-    { key: 'stock' as keyof CatalogItem, label: 'Доступно', width: '120px' },
+    { key: 'stock', label: 'Доступно', width: '120px' },
     {
-      key: 'actions' as keyof CatalogItem,
+      key: 'actions',
       label: '',
       width: props.modelType === 'FBO' ? '260px' : '110px',
     },
@@ -310,7 +253,7 @@ const visibleCards = computed(() => {
   })
 })
 
-const handleInputCommit = (card: CatalogItem) => {
+const handleInputCommit = (card: Product) => {
   const value = inputAmounts[card.idName]
   if (value === undefined || value === '') return
   const qty = Number(value)
@@ -325,16 +268,16 @@ const handleInputCommit = (card: CatalogItem) => {
 const totalAddedQty = computed(() =>
   addedItems.value.reduce((sum, item) => sum + (item.qty || 0), 0),
 )
-const calculateAvailableToShip = (item: CatalogItem) =>
+const calculateAvailableToShip = (item: Product) =>
   Math.max(0, (item.irQuant ?? 0) - (item.iBronTask ?? 0))
 
 const loadAvailableItems = () => {
   runLoadCards(
     async () => {
       if (props.modelType === 'ORD') {
-        availableCards.value = await catalogService.getRemains(filterDefect.value)
+        availableCards.value = await productService.getRemains(filterDefect.value)
       } else {
-        availableCards.value = await catalogService.getCards()
+        availableCards.value = await productService.getProducts()
       }
     },
     { toast, errorMessage: 'Не удалось загрузить данные товаров' },
@@ -357,23 +300,21 @@ const setShipmentMode = (isDefectMode: boolean) => {
   loadAvailableItems()
 }
 
-const quickAddProduct = (card: CatalogItem, customQty = 1) => {
+const quickAddProduct = (card: Product, customQty = 1) => {
   if (customQty <= 0) return
   const limit = calculateAvailableToShip(card)
   if (props.modelType === 'ORD' && limit <= 0) return toast.warning('Товара нет в наличии!')
 
-  const barcode = card.barcodes?.[0] || card.barcode || 'Без ШК'
+  const barcode = card.barcodes?.[0] || 'Без ШК'
   const selectedExpDate = inputExpirations[card.idName] || null
   const conflictingItem = addedItems.value.find(
     (item) => item.barcode === barcode && item.expirationDate !== selectedExpDate,
   )
 
   if (conflictingItem) {
-    const existingDateText = conflictingItem.expirationDate
-      ? conflictingItem.expirationDate
-      : 'Без срока'
+    const existingDateText = conflictingItem.expirationDate || 'Без срока'
     return toast.error(
-      `Ошибка! Для штрихкода ${barcode} уже задан срок годности: ${existingDateText}. Нельзя сохранить один ШК с разными сроками!`,
+      `Ошибка! Для штрихкода ${barcode} уже задан срок годности: ${existingDateText}.`,
     )
   }
 
@@ -469,59 +410,5 @@ input::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
-}
-
-.textarea-container-wrapper {
-  position: relative;
-  z-index: 20;
-}
-.textarea-container-wrapper:hover,
-.textarea-container-wrapper:focus-within {
-  z-index: 50;
-}
-
-.textarea-relative-box {
-  position: relative;
-  width: 100%;
-}
-
-.expanding-textarea {
-  height: 38px;
-  line-height: 1.4;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  resize: none;
-  transition:
-    height 0.2s ease-in-out,
-    box-shadow 0.2s ease;
-  z-index: 10;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  background-color: #fff;
-}
-
-.textarea-container-wrapper:hover .expanding-textarea:not(:placeholder-shown),
-.expanding-textarea:focus {
-  height: 130px;
-  overflow-y: auto;
-  white-space: normal;
-  box-shadow:
-    0 10px 25px rgba(0, 0, 0, 0.15),
-    0 3px 10px rgba(0, 0, 0, 0.1);
-}
-
-.expanding-textarea::-webkit-scrollbar {
-  width: 6px;
-}
-.expanding-textarea::-webkit-scrollbar-track {
-  background: transparent;
-}
-.expanding-textarea::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-.expanding-textarea::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
 }
 </style>

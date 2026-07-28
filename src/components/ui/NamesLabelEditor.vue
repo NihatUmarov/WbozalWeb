@@ -128,8 +128,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import BaseDialog from './UnifiedUI.vue'
-import { cardsService } from '@/api/cardsService'
-import type { LabelTemplate, LabelElement } from '@/api/cardsService'
+import { productService, type LabelTemplate, type LabelElement } from '@/api/productService'
 
 export interface CardDetailItemExt {
   cName?: string
@@ -176,7 +175,8 @@ const loadData = async (defaultType = '60x40') => {
   if (!props.idName) return
   isLoading.value = true
   selectedIndex.value = null
-  templateData.value = await cardsService.getLabelTemplate(props.idName, defaultType)
+  templateData.value = await productService.getLabelTemplate(props.idName, defaultType)
+  isLoading.value = false
 }
 
 const reloadTemplate = () => {
@@ -186,11 +186,12 @@ const reloadTemplate = () => {
 const saveTemplate = async () => {
   if (!templateData.value) return
   isSaving.value = true
-  await cardsService.saveLabelTemplate({
+  await productService.saveLabelTemplate({
     idName: templateData.value.idName,
     cLabelType: templateData.value.cLabelType,
     elements: templateData.value.elements,
   })
+  isSaving.value = false
   emit('saved')
   close()
 }

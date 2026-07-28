@@ -1,3 +1,18 @@
+export interface Product {
+  idName: number
+  primaryImageURL: string | null
+  cName: string | null
+  cArt: string | null
+  cArtWB: string | null
+  size: string | null
+  barcodes: string[]
+  irQuant: number
+  iBronTask: number
+  defectQuant: number
+  isDefect: boolean
+  isKit: boolean
+}
+
 export interface LoginResponse {
   msg: string
   tok: string

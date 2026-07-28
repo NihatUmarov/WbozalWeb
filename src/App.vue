@@ -6,6 +6,16 @@
       <router-view />
     </main>
 
+    <!-- Глобальные уведомления (Toasts) -->
+    <Teleport to="body">
+      <TransitionGroup name="toast-fade" tag="div" class="toast-list">
+        <div v-for="toast in toasts" :key="toast.id" class="toast-card glass-effect">
+          <span :class="['toast-icon', `toast-icon--${toast.type}`]">{{ toast.icon }}</span>
+          <p class="toast-msg">{{ toast.message }}</p>
+        </div>
+      </TransitionGroup>
+    </Teleport>
+
     <transition name="fade">
       <div v-if="updateAvailable" class="update-notification">
         <div class="update-content">
@@ -20,11 +30,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import BaseHeader from '@/components/ui/BaseHeader.vue'
+import { useToast } from '@/composables/useToast'
 
 interface VersionResponse {
   version: string
 }
 
+const { toasts } = useToast()
 const currentVersion = ref<string | null>(null)
 const updateAvailable = ref<boolean>(false)
 let checkInterval: ReturnType<typeof setInterval> | null = null
@@ -84,11 +96,7 @@ onBeforeUnmount(() => {
   min-height: 100vh;
 }
 
-/* Контейнер для контента страниц:
-  - Сверху: минимальный отступ 12px (чуть-чуть)
-  - По бокам: аккуратные 2.5%
-  - Снизу: полностью убран (0px)
-*/
+/* Контейнер для контента страниц */
 .main-content {
   flex: 1;
   width: 100%;
@@ -96,7 +104,6 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-/* На случай, если на каких-то страницах шапка становится фиксированной */
 .app-container :deep(.main-header[style*='position: fixed']) + .main-content,
 .app-container :deep(.main-header.is-fixed) + .main-content {
   margin-top: 85px !important;
@@ -130,10 +137,6 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: 14px;
   font-weight: 500;
-}
-
-.update-icon {
-  font-size: 18px;
 }
 
 .update-btn {
