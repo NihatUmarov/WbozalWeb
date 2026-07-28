@@ -8,6 +8,7 @@
     :current-tab="currentModel"
     :row-class="(item) => (item.model === 'DEF' ? 'row-defect' : '')"
     @tab-change="handleTabChange"
+    @row-click="item => openDetails(item.id)"
   >
     <template #header-actions>
       <div class="flex items-center gap-12">
@@ -76,14 +77,7 @@
     </template>
 
     <template #cell(actions)="{ item }">
-      <div class="flex items-center gap-6 justify-start">
-        <button
-          class="btn btn-secondary btn-xs h-32 px-12 flex items-center justify-center"
-          @click="openDetails(item.id)"
-        >
-          👁 Состав
-        </button>
-
+      <div class="flex items-center gap-6 justify-center">
         <button
           v-if="permissions.invoice"
           class="btn btn-secondary btn-xs flex items-center justify-center shrink-0"
@@ -253,7 +247,7 @@ const columns = computed<TableColumn<StockDocument & { actions?: unknown }>[]>((
     )
   }
 
-  baseCols.push({ key: 'actions', label: 'Спецификация', width: '180px' })
+  baseCols.push({ key: 'actions', label: '#', width: '100px' })
   return baseCols
 })
 
