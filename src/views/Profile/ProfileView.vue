@@ -1,30 +1,27 @@
 <template>
-  <!-- 1. Заменили классы обертки на стандартные flex flex-col gap-16 p-16 -->
   <div class="flex flex-col gap-16 p-16">
-    <!-- Внутренний контейнер, который сохраняет аккуратную ширину для контента профиля -->
     <div class="w-full max-w-4xl mx-auto flex flex-col gap-16">
-      <!-- Шапка профиля: привели отступы px-24 py-16 к общему p-16 и добавили flex-wrap для адаптивности -->
-      <div class="card flex flex-wrap items-center justify-between gap-12 p-16">
-        <h2 class="text-xl font-bold text-primary m-0">Профиль организации</h2>
+      <div class="flex items-center gap-12">
+        <a href="/tariff" target="_blank" class="btn btn-secondary flex items-center gap-6">
+          <span>Тарифы</span>
+        </a>
 
-        <div class="flex items-center gap-12">
-          <button
-            type="button"
-            class="btn btn-secondary flex items-center gap-6"
-            @click="showEditProfile = true"
-          >
-            <span>📝 Редактировать юр. данные</span>
-          </button>
+        <button
+          type="button"
+          class="btn btn-secondary flex items-center gap-6"
+          @click="showEditProfile = true"
+        >
+          <span>Редактировать юр. данные</span>
+        </button>
 
-          <button
-            type="button"
-            class="btn btn-secondary flex items-center gap-6"
-            :disabled="!permissions.admin"
-            @click="showUserManagement = true"
-          >
-            <span>👥 Добавить сотрудника</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          class="btn btn-secondary flex items-center gap-6"
+          :disabled="!permissions.admin"
+          @click="showUserManagement = true"
+        >
+          <span>Добавить сотрудника</span>
+        </button>
       </div>
 
       <!-- Лоадер -->

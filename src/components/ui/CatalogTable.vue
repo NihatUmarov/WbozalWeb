@@ -1,5 +1,6 @@
 <template>
   <BaseTable
+    ref="baseTableRef"
     :items="items"
     :columns="mergedColumns"
     :loading="loading"
@@ -120,7 +121,7 @@
       </span>
     </template>
 
-    <!-- Динамический проброс внешних слотов без any -->
+    <!-- Динамический проброс внешних слотов -->
     <template
       v-for="(_, name) in $slots as Record<string, unknown>"
       :key="name"
@@ -131,13 +132,13 @@
   </BaseTable>
 </template>
 
+<!-- В файле CatalogTable.vue -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, type ComponentPublicInstance } from 'vue' // 1. Импортируем ComponentPublicInstance
 import BaseTable from './BaseTable.vue'
 import type { TableColumn } from './BaseTable.vue'
 import type { CatalogItem as BaseCatalogItem } from '@/api/catalogService'
 
-// Наследуем интерфейс и добавляем индексную сигнатуру для совместимости с BaseTable
 interface CatalogItem extends BaseCatalogItem, Record<string, unknown> {
   isKit?: boolean
 }
@@ -161,6 +162,16 @@ defineEmits<{
   (e: 'rowClick', item: CatalogItem): void
 }>()
 
+// 2. Объявляем интерфейс методов, которые отдает BaseTable через defineExpose
+interface BaseTableExpose {
+  triggerExcelExport: (fileName: string) => void
+  getScrollTop: () => number
+  setScrollTop: (top: number) => void
+}
+
+// 3. Используем ComponentPublicInstance вместо InstanceType<typeof BaseTable>
+const baseTableRef = ref<(ComponentPublicInstance & BaseTableExpose) | null>(null)
+
 const baseColumns: TableColumn<CatalogItem>[] = [
   { key: 'primaryImageURL', label: 'Фото', width: '70px', minWidth: '70px' },
   { key: 'cArt', label: 'Артикул', sortable: true, filterable: true, minWidth: '100px' },
@@ -176,5 +187,12 @@ const baseColumns: TableColumn<CatalogItem>[] = [
 const mergedColumns = computed<TableColumn<CatalogItem>[]>(() => {
   const filteredBase = baseColumns.filter((c) => !props.hideColumns.includes(String(c.key)))
   return [...filteredBase, ...props.extraColumns]
+})
+
+// 4. Пробрасываем методы наружу
+defineExpose({
+  triggerExcelExport: (fileName: string) => baseTableRef.value?.triggerExcelExport(fileName),
+  getScrollTop: () => baseTableRef.value?.getScrollTop() ?? 0,
+  setScrollTop: (top: number) => baseTableRef.value?.setScrollTop(top),
 })
 </script>

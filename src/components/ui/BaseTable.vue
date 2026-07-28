@@ -5,25 +5,28 @@
     ref="scrollContainer"
     style="overflow-y: auto; overflow-x: auto; position: relative"
   >
-    <!-- Глобальный лоадер -->
+    <!-- Лоадер теперь рисуется ПОВЕРХ, не уничтожая скролл-контейнер -->
     <div
       v-if="loading"
-      class="table-state text-muted"
-      style="padding: 40px 20px; text-align: center"
+      class="table-state text-muted absolute inset-0 bg-surface/80 z-40 flex flex-col items-center justify-center"
+      style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(2px);
+      "
     >
       <div class="global-spin"></div>
-      <p class="text-sm font-medium">{{ loadingText }}</p>
+      <p class="text-sm font-medium mt-8">{{ loadingText }}</p>
     </div>
 
-    <!-- Таблица -->
-    <div v-else class="table-responsive" style="position: relative; width: 100%">
+    <div class="table-responsive" style="position: relative; width: 100%">
       <table
         class="minimal-table resizable-table"
-        :style="{
-          tableLayout: 'fixed',
-          width: '100%',
-          minWidth: '100%',
-        }"
+        style="table-layout: fixed; width: 100%; min-width: 100%; border-collapse: collapse"
       >
         <colgroup>
           <col
@@ -70,7 +73,11 @@
                 "
               >
                 <span class="truncate">{{ col.label }}</span>
-                <span v-if="col.sortable" class="sort-arrows" style="margin-left: 4px; shrink: 0">
+                <span
+                  v-if="col.sortable"
+                  class="sort-arrows"
+                  style="margin-left: 4px; flex-shrink: 0"
+                >
                   <span
                     :class="{
                       active: currentSort.key === String(col.key) && currentSort.order === 'asc',
@@ -155,13 +162,17 @@
             </td>
           </tr>
 
-          <!-- СЛУЧАЙ 3: Вывод строк пачками -->
+          <!-- СЛУЧАЙ 3: Полный мгновенный вывод -->
           <tr
             v-else
-            v-for="(item, index) in limitedItems"
+            v-for="(item, index) in filteredAndSortedItems"
             :key="getItemId(item, index)"
             :class="[rowClass ? rowClass(item) : '', 'row-clickable']"
-            :style="{ height: rowHeight + 'px' }"
+            :style="{
+              height: rowHeight + 'px',
+              containIntrinsicSize: `auto ${rowHeight}px`,
+              contentVisibility: 'auto',
+            }"
             @click="handleRowClick(item, $event)"
           >
             <td
@@ -180,25 +191,12 @@
           </tr>
         </tbody>
       </table>
-
-      <!-- НЕВИДИМЫЙ ЯКОРЬ ДЛЯ СЛЕЖКИ ЗА СКРОЛЛОМ -->
-      <div
-        ref="loadMoreTrigger"
-        style="
-          height: 10px;
-          width: 100%;
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          pointer-events: none;
-        "
-      ></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts" generic="T extends Record<string, unknown>">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import * as XLSX from 'xlsx'
 import { useViewSettings } from '@/composables/useViewSettings'
 
@@ -245,15 +243,11 @@ const columnOrder = ref<TableColumn<T>[]>([])
 const columnWidths = ref<Record<string, string>>({})
 
 watch(
-  () => props.columns,
-  (newCols) => {
-    const currentKeys = columnOrder.value.map((c) => String(c.key)).join(',')
-    const newKeys = newCols.map((c) => String(c.key)).join(',')
-    if (currentKeys !== newKeys || columnOrder.value.length === 0) {
-      columnOrder.value = [...newCols]
-    }
+  () => props.columns.map((c) => String(c.key)).join(','),
+  () => {
+    columnOrder.value = [...props.columns]
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 )
 
 const dynamicColumns = computed(() => {
@@ -293,6 +287,17 @@ const onDrop = (index: number) => {
 }
 
 const scrollContainer = ref<HTMLElement | null>(null)
+
+// Управление скроллом контейнера
+const getScrollTop = (): number => {
+  return scrollContainer.value ? scrollContainer.value.scrollTop : 0
+}
+
+const setScrollTop = (top: number): void => {
+  if (scrollContainer.value) {
+    scrollContainer.value.scrollTop = top
+  }
+}
 
 const startResize = (event: MouseEvent, colIndex: number) => {
   const currentKey = String(dynamicColumns.value[colIndex].key)
@@ -340,8 +345,7 @@ const onFilterInput = (key: string, event: Event) => {
   clearTimeout(filterTimeout)
   filterTimeout = setTimeout(() => {
     filters.value = { ...filters.value, [key]: target.value }
-    displayLimit.value = 50
-  }, 150)
+  }, 120)
 }
 
 const currentSort = ref<{ key: string | null; order: 'asc' | 'desc' }>({ key: null, order: 'asc' })
@@ -418,79 +422,6 @@ const filteredAndSortedItems = computed(() => {
   return result
 })
 
-// --- УМНАЯ ФОНОВАЯ АВТОЗАГРУЗКА ---
-const displayLimit = ref(50)
-const loadMoreTrigger = ref<HTMLElement | null>(null)
-let observer: IntersectionObserver | null = null
-let autoLoadTimeout: ReturnType<typeof setTimeout> | null = null
-
-const limitedItems = computed(() => {
-  return filteredAndSortedItems.value.slice(0, displayLimit.value)
-})
-
-// Функция, которая мягко догружает данные порциями в фоновом режиме
-const startBackgroundLoading = () => {
-  if (autoLoadTimeout) clearTimeout(autoLoadTimeout)
-
-  // Если еще есть что рендерить
-  if (displayLimit.value < filteredAndSortedItems.value.length) {
-    // Ждем 100мс, чтобы дать браузеру передохнуть и обработать клики/ввод юзера
-    autoLoadTimeout = setTimeout(() => {
-      displayLimit.value = Math.min(displayLimit.value + 100, filteredAndSortedItems.value.length)
-      startBackgroundLoading() // Рекурсивно зовем следующую пачку
-    }, 100)
-  }
-}
-
-// Инициализируем наблюдатель (на случай, если пользователь сам быстро проскроллит вниз)
-onMounted(() => {
-  observer = new IntersectionObserver(
-    (entries) => {
-      const trigger = entries[0]
-      if (trigger.isIntersecting) {
-        if (displayLimit.value < filteredAndSortedItems.value.length) {
-          displayLimit.value = Math.min(
-            displayLimit.value + 150,
-            filteredAndSortedItems.value.length,
-          )
-        }
-      }
-    },
-    {
-      rootMargin: '200px',
-    },
-  )
-
-  if (loadMoreTrigger.value) {
-    observer.observe(loadMoreTrigger.value)
-  }
-
-  // Запускаем фоновый догруз сразу после монтирования таблицы
-  startBackgroundLoading()
-})
-
-onUnmounted(() => {
-  if (observer) observer.disconnect()
-  if (autoLoadTimeout) clearTimeout(autoLoadTimeout)
-})
-
-watch(loadMoreTrigger, (newVal) => {
-  if (observer) {
-    observer.disconnect()
-    if (newVal) observer.observe(newVal)
-  }
-})
-
-// Если исходные данные изменились (прилетел новый список с сервера)
-watch(
-  () => props.items,
-  () => {
-    displayLimit.value = 50
-    // Снова запускаем фоновый догруз для нового списка
-    startBackgroundLoading()
-  },
-)
-
 const getItemId = (item: T, index: number) => {
   if ('id' in item) return item.id as string | number
   if ('idName' in item) return item.idName as string | number
@@ -540,5 +471,11 @@ const generateExcel = (useFilters: boolean) => {
   XLSX.writeFile(workbook, `${currentExportFileName}_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
-defineExpose({ hasActiveFilters, filteredAndSortedItems, triggerExcelExport })
+defineExpose({
+  hasActiveFilters,
+  filteredAndSortedItems,
+  triggerExcelExport,
+  getScrollTop,
+  setScrollTop,
+})
 </script>

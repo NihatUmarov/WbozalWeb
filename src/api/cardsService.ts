@@ -14,6 +14,22 @@ export interface CardItem {
   isKit?: boolean
 }
 
+// Новый тип товара для Стоп-листа
+export interface StopListItem {
+  idName: number
+  cName: string | null
+  cArt: string | null
+  primaryImageURL: string | null
+  isActive: boolean
+  updatedAt: string | null
+  barcodes: string[]
+}
+
+export interface UpdateStopListRequest {
+  idNames: number[]
+  isActive: boolean
+}
+
 export interface KitComponent {
   idName: number
   qty: number
@@ -44,8 +60,8 @@ export interface CardDetailItem {
   defectQuant: number
   barcodes: string[]
   photos: string[]
-  isKit: boolean // <-- НОВОЕ ПОЛЕ
-  components: KitComponent[] // <-- СОСТАВ КОМПЛЕКТА
+  isKit: boolean
+  components: KitComponent[]
 }
 
 // Типы для этикеток
@@ -119,18 +135,31 @@ export interface LinkWbRequest {
   newIdName: number | null
 }
 
+export interface BulkKitSaveRequest {
+  kits: SaveKitRequest[]
+}
+
 export interface ICardsService {
   getCards(): Promise<CardItem[]>
   getCardById(idName: number): Promise<CardDetailItem>
   getLabelTemplate(idName: number, defaultType?: string): Promise<LabelTemplate>
   saveLabelTemplate(data: SaveLabelRequest): Promise<{ success: boolean }>
 
+  // Стоп-лист (Флаг активности продаж)
+  getStopList(): Promise<StopListItem[]>
+  updateStopList(data: UpdateStopListRequest): Promise<{ success: boolean; message: string }>
+
+  bulkSaveKits(data: BulkKitSaveRequest): Promise<{ success: boolean; message: string }>
+
   // Комплекты
   saveKit(data: SaveKitRequest): Promise<{ success: boolean; message: string }>
   deleteKit(idName: number): Promise<{ success: boolean; message: string }>
 
-  // Карточки (НОВЫЙ МЕТОД ДЛЯ БЭКЕНДА)
+  // Карточки
   deleteCard(idName: number): Promise<{ success: boolean; message: string }>
+
+  // Синхронизация маркетплейсов
+  syncMarketplaces(): Promise<{ success: boolean; message: string }>
 
   // Маркетплейсы
   getOzonProducts(): Promise<OzonProduct[]>
@@ -172,6 +201,20 @@ export const cardsService: ICardsService = {
     return data
   },
 
+  // --- Реализация методов Стоп-листа ---
+  async getStopList(): Promise<StopListItem[]> {
+    const { data } = await httpClient.get<StopListItem[]>('/api/seller/cards/stop-list')
+    return data
+  },
+
+  async updateStopList(payload: UpdateStopListRequest) {
+    const { data } = await httpClient.post<{ success: boolean; message: string }>(
+      '/api/seller/cards/stop-list/update',
+      payload,
+    )
+    return data
+  },
+
   async saveKit(payload: SaveKitRequest) {
     const { data } = await httpClient.post<{ success: boolean; message: string }>(
       '/api/seller/cards/kit/save',
@@ -183,6 +226,13 @@ export const cardsService: ICardsService = {
   async deleteKit(idName: number) {
     const { data } = await httpClient.delete<{ success: boolean; message: string }>(
       `/api/seller/cards/kit/${idName}`,
+    )
+    return data
+  },
+
+  async syncMarketplaces() {
+    const { data } = await httpClient.post<{ success: boolean; message: string }>(
+      '/api/seller/cards/sync',
     )
     return data
   },
@@ -208,6 +258,14 @@ export const cardsService: ICardsService = {
   async linkWbProduct(payload: LinkWbRequest) {
     const { data } = await httpClient.post<{ success: boolean; message: string }>(
       '/api/seller/cards/wb/link',
+      payload,
+    )
+    return data
+  },
+
+  async bulkSaveKits(payload: BulkKitSaveRequest) {
+    const { data } = await httpClient.post<{ success: boolean; message: string }>(
+      '/api/seller/cards/kit/bulk-save',
       payload,
     )
     return data

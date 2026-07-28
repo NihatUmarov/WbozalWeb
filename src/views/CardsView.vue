@@ -6,6 +6,11 @@
         <h2 class="text-xl font-bold text-primary m-0">Карточки товаров (МультиШК)</h2>
 
         <div class="flex items-center gap-12">
+          <!-- КНОПКА МАССОВОГО ОБНОВЛЕНИЯ КОМПЛЕКТОВ -->
+          <button class="btn btn-primary flex items-center gap-8" @click="isBulkImportOpen = true">
+            <span>Обновление комплектов</span>
+          </button>
+
           <button class="btn btn-secondary flex items-center gap-8" @click="exportToExcel">
             <img src="@/components/icons/office-exel.svg" alt="Excel" width="16" height="16" />
             <span>Выгрузить in Excel</span>
@@ -13,7 +18,7 @@
         </div>
       </div>
 
-      <!-- СИСТЕМНЫЕ ТАБЫ (Используем твои стили из main.css) -->
+      <!-- СИСТЕМНЫЕ ТАБЫ -->
       <div class="page-tabs">
         <button
           :class="['tab-btn', { 'tab-btn--active': activeTab === 'items' }]"
@@ -64,18 +69,32 @@
         v-if="selectedIdNameForView && isDetailOpen"
         :id-name="selectedIdNameForView"
         :all-cards="cardsAsCardItems"
-        @updated="fetchCards"
+        @updated="handleDetailUpdated"
+      />
+    </BaseDialog>
+
+    <!-- МОДАЛЬНОЕ ОКНО: Массовый импорт/обновление комплектов через Excel -->
+    <BaseDialog v-model:is-open="isBulkImportOpen" variant="modal" max-width="2xl">
+      <template #header>
+        <h2 class="text-xl font-bold m-0">Массовое обновление комплектов</h2>
+      </template>
+      <KitBulkImportModal
+        v-if="isBulkImportOpen"
+        :catalog-cards="cardsAsCardItems"
+        @close="isBulkImportOpen = false"
+        @updated="handleBulkUpdated"
       />
     </BaseDialog>
   </MainLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick, type ComponentPublicInstance } from 'vue' // <--- ДОБАВИЛИ СУДА
 import SharedProductTable from '@/components/ui/CatalogTable.vue'
 import NamesLabelEditor from '@/components/ui/NamesLabelEditor.vue'
 import BaseDialog from '@/components/ui/UnifiedUI.vue'
 import ProductDetailModal from '@/components/ui/ProductDetailModal.vue'
+import KitBulkImportModal from '@/components/modals/KitBulkImportModal.vue'
 import { catalogService, type CatalogItem } from '@/api/catalogService'
 import { useAsync } from '@/composables/useAsync'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
@@ -85,10 +104,18 @@ interface ExtendedCatalogItem extends CatalogItem {
   isKit?: boolean
 }
 
-type TabType = 'items' | 'kits'
+// 1. Интерфейс того, что экспортирует CatalogTable (SharedProductTable)
+interface CatalogTableExpose {
+  triggerExcelExport: (fileName: string) => void
+  getScrollTop: () => number
+  setScrollTop: (top: number) => void
+}
 
-const tableRef = ref<InstanceType<typeof SharedProductTable> | null>(null)
-const activeTab = ref<TabType>('items') // По умолчанию активны одиночные товары
+// 2. Ссылка на компонент таблицы с правильным типом
+const tableRef = ref<(ComponentPublicInstance & CatalogTableExpose) | null>(null)
+
+type TabType = 'items' | 'kits'
+const activeTab = ref<TabType>('items')
 
 const extraCols: TableColumn<CatalogItem>[] = [
   { key: 'actions' as keyof CatalogItem, label: 'Действия', width: '110px' },
@@ -103,7 +130,16 @@ const selectedIdName = ref(0)
 const isDetailOpen = ref(false)
 const selectedIdNameForView = ref<number | null>(null)
 
-// Реактивное разделение потоков данных: либо только товары, либо только комплекты
+const isBulkImportOpen = ref(false)
+
+// 3. Выгрузка в Excel
+const exportToExcel = () => {
+  if (tableRef.value) {
+    const fileName = activeTab.value === 'kits' ? 'Комплекты товаров' : 'Одиночные товары'
+    tableRef.value.triggerExcelExport(fileName)
+  }
+}
+
 const displayedCards = computed(() => {
   if (activeTab.value === 'kits') {
     return cards.value.filter((card) => card.isKit === true)
@@ -145,20 +181,29 @@ const onProductClick = (item: CatalogItem) => {
   isDetailOpen.value = true
 }
 
-const fetchCards = () => {
-  run(async () => {
+const fetchCards = async () => {
+  const savedScrollTop = tableRef.value?.getScrollTop() || 0
+
+  await run(async () => {
     cards.value = (await catalogService.getCards()) as ExtendedCatalogItem[]
+  })
+
+  await nextTick()
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      tableRef.value?.setScrollTop(savedScrollTop)
+    })
   })
 }
 
-const exportToExcel = () => {
-  if (tableRef.value && 'triggerExcelExport' in tableRef.value) {
-    const table = tableRef.value as Record<string, unknown>
-    if (typeof table.triggerExcelExport === 'function') {
-      const fileName = activeTab.value === 'kits' ? 'Комплекты товаров' : 'Одиночные товары'
-      table.triggerExcelExport(fileName)
-    }
-  }
+const handleDetailUpdated = () => {
+  isDetailOpen.value = false
+  fetchCards()
+}
+
+const handleBulkUpdated = () => {
+  isBulkImportOpen.value = false
+  fetchCards()
 }
 
 onMounted(fetchCards)

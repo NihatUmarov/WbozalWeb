@@ -10,6 +10,25 @@
             выгрузки остатков
           </p>
         </div>
+
+        <!-- Кнопки управления -->
+        <div class="flex items-center gap-12 flex-wrap">
+          <button
+            class="btn btn-warning flex items-center gap-8"
+            @click="isStopListModalOpen = true"
+          >
+            <span>🛑 Стоп-лист товаров</span>
+          </button>
+
+          <button
+            class="btn btn-primary flex items-center gap-8"
+            :disabled="isSyncing"
+            @click="handleSync"
+          >
+            <div v-if="isSyncing" class="btn-spinner"></div>
+            <span>Обновить карточки из МП</span>
+          </button>
+        </div>
       </div>
 
       <!-- Переключатель вкладок (Табы) — WB ТЕПЕРЬ ПЕРВЫЙ -->
@@ -122,10 +141,9 @@
           </div>
         </div>
 
-        <!-- Разделительная линия вместо смайлика-ссылки -->
         <hr class="border-b" />
 
-        <!-- Блок выбранного товара WMS (Строгий дизайн) -->
+        <!-- Блок выбранного товара WMS -->
         <div v-if="selectedWarehouseCard" class="flex flex-col gap-8">
           <span class="text-[10px] font-bold text-muted uppercase tracking-wider block">
             Привязанный товар WMS:
@@ -165,7 +183,7 @@
           </div>
         </div>
 
-        <!-- Умный поиск товара WMS (Строгий дизайн) -->
+        <!-- Умный поиск товара WMS -->
         <div v-else class="flex flex-col gap-8">
           <span class="text-[10px] font-bold text-muted uppercase tracking-wider block">
             Привязанный товар WMS:
@@ -219,6 +237,9 @@
         </button>
       </template>
     </BaseDialog>
+
+    <!-- МОДАЛЬНОЕ ОКНО СТОП-ЛИСТА -->
+    <StopListModal v-model:is-open="isStopListModalOpen" />
   </MainLayout>
 </template>
 
@@ -226,6 +247,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import BaseDialog from '@/components/ui/UnifiedUI.vue'
+import StopListModal from '@/components/modals/StopListModal.vue'
 import { cardsService, type OzonProduct, type WbProduct, type CardItem } from '@/api/cardsService'
 import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'
@@ -235,21 +257,24 @@ const toast = useToast()
 const { loading, run } = useAsync()
 const isSaving = ref(false)
 
-const activeTab = ref<'ozon' | 'wb'>('wb') // ПО УМОЛЧАНИЮ ОТКРЫВАЕМ WB
+const activeTab = ref<'ozon' | 'wb'>('wb')
 const ozonProducts = ref<OzonProduct[]>([])
 const wbProducts = ref<WbProduct[]>([])
 const warehouseCards = ref<CardItem[]>([])
 
 const isLinkModalOpen = ref(false)
+const isStopListModalOpen = ref(false) // <--- СОСТОЯНИЕ ДЛЯ СТОП-ЛИСТА
 const selectedMarketplaceProduct = ref<OzonProduct | WbProduct | null>(null)
 const targetIdName = ref<number | null>(null)
 
-// --- Состояния автокомплита ---
+// Состояния автокомплита
 const targetSearchQuery = ref('')
 const isTargetDropdownOpen = ref(false)
 const targetAutocompleteRef = ref<HTMLElement | null>(null)
 
-// Колонки для Ozon
+const isSyncing = ref(false)
+
+// Колонки Ozon
 const ozonColumns: TableColumn<OzonProduct>[] = [
   { key: 'marking', label: 'Артикул Ozon', filterable: true, minWidth: '120px' },
   { key: 'sku', label: 'SKU / Код', filterable: true, minWidth: '100px' },
@@ -258,7 +283,7 @@ const ozonColumns: TableColumn<OzonProduct>[] = [
   { key: 'linkedIdName', label: 'Связанный товар WMS', minWidth: '220px' },
 ]
 
-// Колонки для WB
+// Колонки WB
 const wbColumns: TableColumn<WbProduct>[] = [
   { key: 'vendorCode', label: 'Артикул WB', filterable: true, minWidth: '120px' },
   { key: 'marketplaceName', label: 'Название на WB', filterable: true, minWidth: '200px' },
@@ -283,7 +308,6 @@ const fetchData = () => {
   })
 }
 
-// --- Логика Умного Поиска ---
 const filteredWarehouseCards = computed(() => {
   const query = targetSearchQuery.value.toLowerCase().trim()
   if (!query) return warehouseCards.value.slice(0, 10)
@@ -297,6 +321,30 @@ const filteredWarehouseCards = computed(() => {
     })
     .slice(0, 15)
 })
+
+const handleSync = async () => {
+  isSyncing.value = true
+  try {
+    const result = await cardsService.syncMarketplaces()
+
+    if (typeof toast.success === 'function') {
+      toast.success(result.message || 'Синхронизация успешно запущена в фоне!')
+    }
+
+    setTimeout(() => {
+      fetchData()
+    }, 3000)
+  } catch (err: unknown) {
+    if (typeof toast.error === 'function') {
+      const errorMsg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Не удалось запустить синхронизацию'
+      toast.error(errorMsg)
+    }
+  } finally {
+    isSyncing.value = false
+  }
+}
 
 const selectedWarehouseCard = computed(() => {
   if (!targetIdName.value) return null
@@ -371,11 +419,9 @@ onUnmounted(() => {
 }
 
 .autocomplete-dropdown {
-  /* Убираем position: absolute, переводим в относительный поток,
-     чтобы overflow: hidden в модалке его больше не резал */
   position: relative;
   width: 100%;
-  background: var(--color-surface, #fff); /* Исправили опечатку --scolor-surface */
+  background: var(--color-surface, #fff);
   border: 1px solid var(--color-border-dark, #ccc);
   border-radius: var(--radius-8, 6px);
   max-height: 180px;
@@ -400,7 +446,6 @@ onUnmounted(() => {
   background: var(--color-background-secondary);
 }
 
-/* Стилизация скроллбара дропдауна под общую дизайн-систему */
 .autocomplete-dropdown {
   scrollbar-width: thin;
 }
