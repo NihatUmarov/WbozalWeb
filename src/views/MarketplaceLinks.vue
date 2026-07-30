@@ -2,8 +2,8 @@
   <MainLayout>
     <BaseDataPage
       title="Интеграция с маркетплейсами"
-      :items="activeTab === 'ozon' ? ozonProducts : wbProducts"
-      :columns="activeTab === 'ozon' ? ozonColumns : wbColumns"
+      :items="(activeTab === 'ozon' ? ozonProducts : wbProducts) as any"
+      :columns="(activeTab === 'ozon' ? ozonColumns : wbColumns) as any"
       :loading="loading"
       :tabs="[
         { label: 'Wildberries FBS', value: 'wb' },
@@ -27,14 +27,14 @@
       <template #default="{ registerTable }">
         <BaseTable
           :ref="registerTable"
-          :items="activeTab === 'ozon' ? ozonProducts : wbProducts"
-          :columns="activeTab === 'ozon' ? ozonColumns : wbColumns"
+          :items="(activeTab === 'ozon' ? ozonProducts : wbProducts) as any"
+          :columns="(activeTab === 'ozon' ? ozonColumns : wbColumns) as any"
           :loading="loading"
           :row-height="80"
-          @row-click="openLinkModal"
+          @row-click="openLinkModal($event as any)"
         >
           <!-- Unified Slots -->
-          <template #cell(linkedIdName)="{ item }">
+          <template #cell(linkedIdName)="{ item }: any">
             <div class="flex flex-col min-w-0 gap-4" v-if="item.linkedIdName">
               <AppTableCell :value="item.linkedName" bold size="xs" />
               <AppTableCell :value="`ID: ${item.linkedIdName} | Арт: ${item.linkedArt}`" mono size="xs" color="muted" />

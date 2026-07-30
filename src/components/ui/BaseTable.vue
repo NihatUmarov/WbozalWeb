@@ -210,7 +210,8 @@ const filters = reactive<Record<string, string>>({})
 const sortKey = ref<string | null>(null)
 const sortOrder = ref<'asc' | 'desc'>('asc')
 
-const getVal = (item: T, key: keyof T | string): unknown => (item as Record<string, unknown>)[key as string]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getVal = (item: any, key: any): any => (item as Record<string, unknown>)[key as string]
 
 const filteredAndSortedItems = computed(() => {
   if (!props.items) return []

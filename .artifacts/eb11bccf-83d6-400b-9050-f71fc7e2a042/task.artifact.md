@@ -1,0 +1,4 @@
+- [x] Fix TypeScript errors in `BaseTable.vue`
+- [x] Fix TypeScript errors in `MarketplaceLinks.vue`
+- [x] Verify build succeeds with `npm run type-check`
+- [x] Create walkthrough
