@@ -179,7 +179,7 @@ import { useViewSettings } from '@/composables/useViewSettings'
 const props = withDefaults(defineProps<{
   items: T[]; columns: TableColumn<T>[]; loading?: boolean; loadingText?: string; emptyText?: string; emptyIcon?: string; maxHeight?: string; rowClass?: (item: T) => string; rowHeight?: number
 }>(), {
-  loading: false, loadingText: 'Загрузка...', emptyText: 'Нет данных', emptyIcon: '📂', maxHeight: 'calc(100vh - 280px)', rowHeight: 120
+  loading: false, loadingText: 'Загрузка...', emptyText: 'Нет данных', emptyIcon: '📂', maxHeight: 'calc(100vh - 280px)', rowHeight: 80
 })
 
 const emit = defineEmits<{ (e: 'rowClick', item: T): void }>()
@@ -316,7 +316,14 @@ const generateExcel = (f: boolean) => {
   const data = f ? filteredAndSortedItems.value : props.items
   const rows = data.map(item => {
     const r: Record<string, string | number> = {}
-    props.columns.forEach(c => r[c.label] = c.exportFormatter ? c.exportFormatter(getVal(item, c.key), item) : String(getVal(item, c.key) ?? '—'))
+    props.columns.forEach(c => {
+      const val = getVal(item, c.key)
+      if (c.exportFormatter) {
+        r[c.label] = c.exportFormatter(val, item)
+      } else {
+        r[c.label] = (typeof val === 'number') ? val : (val ?? '—')
+      }
+    })
     return r
   })
   const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new()

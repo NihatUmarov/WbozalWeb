@@ -7,6 +7,7 @@
     :tabs="tabs"
     :current-tab="currentModel"
     :row-class="(item) => (item.model === 'DEF' ? 'row-defect' : '')"
+    :row-height="72"
     @tab-change="handleTabChange"
     @row-click="item => openDetails(item.id)"
   >

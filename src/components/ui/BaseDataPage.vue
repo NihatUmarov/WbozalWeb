@@ -44,6 +44,7 @@
           :empty-icon="emptyIcon"
           max-height="100%"
           :row-class="rowClass"
+          :row-height="rowHeight"
           @rowClick="onRowClick"
         >
           <template v-for="(_, name) in $slots as Record<string, any>" :key="name" #[name]="slotData">
@@ -89,6 +90,7 @@ const props = withDefaults(
     emptyIcon?: string
     tableMaxHeight?: string
     rowClass?: (item: T) => string
+    rowHeight?: number
     hasHeader?: boolean
     showExcelExport?: boolean
   }>(),
