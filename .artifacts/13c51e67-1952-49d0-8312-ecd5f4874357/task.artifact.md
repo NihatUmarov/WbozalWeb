@@ -1,7 +1,0 @@
-- [x] Исправить дублирование колонки "Брак" в `InvoiceDetailsModal.vue`
-- [x] Проверить `InvoiceCreateModal.vue` на аналогичные проблемы
-- [x] Верифицировать отображение колонок в интерфейсе
-- [x] Уменьшить высоту строк в `BaseTable.vue` по умолчанию (120 -> 80)
-- [x] Добавить проп `rowHeight` в `BaseDataPage.vue`
-- [x] Установить компактную высоту строк (72px) в `InvoiceView.vue`
-- [x] Исправить типы данных в `BaseTable.vue` при экспорте в Excel (String -> Number)

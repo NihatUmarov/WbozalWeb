@@ -40,7 +40,11 @@
           <SharedProductTable
             :items="documentDetails as any"
             :loading="loading"
-            :hide-columns="['defectQuant', 'irQuant', 'iBronTask']"
+            :hide-columns="
+              modelType !== 'FBO'
+                ? ['defectQuant', 'irQuant', 'iBronTask']
+                : ['irQuant', 'iBronTask']
+            "
             :extra-columns="invoiceQtyColumns"
           >
             <template #cell(expirationDate)="{ item }: { item: any }">
