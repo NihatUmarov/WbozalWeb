@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :is-open="isOpen" variant="sheet" max-width="5xl" @update:is-open="close">
+  <BaseModal :is-open="isOpen" variant="sheet" max-width="7xl" @update:is-open="close">
     <template #header>
       <div class="flex items-center gap-12">
         <AppBadge :variant="getStatusVariant(status)" :text="status || 'Спецификация'" />

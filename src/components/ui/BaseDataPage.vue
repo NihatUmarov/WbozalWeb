@@ -1,6 +1,6 @@
 <template>
-  <div class="data-page flex flex-col gap-20">
-    <div class="card page-header" v-if="hasHeader">
+  <div class="data-page flex flex-col gap-20 h-full overflow-hidden pb-16">
+    <div class="card page-header shrink-0" v-if="hasHeader">
       <div class="flex items-center justify-between flex-wrap gap-12">
         <h1>{{ title }}</h1>
 
@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <div class="page-tabs" v-if="tabs && tabs.length > 0">
+    <div class="page-tabs shrink-0" v-if="tabs && tabs.length > 0">
       <button
         v-for="tab in tabs"
         :key="tab.value"
@@ -32,7 +32,7 @@
       </button>
     </div>
 
-    <div class="w-full">
+    <div class="flex-1 min-h-0 w-full overflow-hidden">
       <slot :items="items" :columns="columns" :loading="loading" :register-table="registerExternalTable">
         <BaseTable
           ref="tableRef"
@@ -42,7 +42,7 @@
           :loading-text="loadingText"
           :empty-text="emptyText"
           :empty-icon="emptyIcon"
-          :max-height="tableMaxHeight"
+          max-height="100%"
           :row-class="rowClass"
           @rowClick="onRowClick"
         >

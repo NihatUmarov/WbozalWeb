@@ -46,6 +46,7 @@ export interface StockDocumentDetailItem {
   qtyFact: number
   qtyDefect: number
   expirationDate: string | null
+  barcodes?: string[]
 }
 
 export interface StockDocument {
@@ -68,7 +69,11 @@ export const stockService = {
     httpClient.post<{ message: string; id: number }>('/api/seller/create_invoice', payload).then(r => r.data),
 
   getDocumentDetails: (idRSIncome: number) =>
-    httpClient.post<StockDocumentDetailItem[]>('/api/seller/get_invoice_details', null, { params: { idRSIncome } }).then(r => r.data),
+    httpClient.post<StockDocumentDetailItem[]>('/api/seller/get_invoice_details', null, { params: { idRSIncome } })
+      .then(r => r.data.map(item => ({
+        ...item,
+        barcodes: item.barcode ? [item.barcode] : []
+      }))),
 
   cancelDocument: (idRSIncome: number) =>
     httpClient.post<{ message: string }>('/api/seller/cancel_invoice', null, { params: { idRSIncome } }).then(r => r.data),

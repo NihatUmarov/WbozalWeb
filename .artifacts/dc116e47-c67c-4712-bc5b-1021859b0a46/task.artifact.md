@@ -1,0 +1,4 @@
+- [ ] Separate header from transformed body to eliminate jitter in `BaseTable.vue`
+- [ ] Increase default table `min-height` by 50%
+- [ ] Reduce default `rowHeight` in `BaseTable.vue` and `CatalogTable.vue`
+- [ ] Ensure perfect column alignment using shared `<colgroup>`

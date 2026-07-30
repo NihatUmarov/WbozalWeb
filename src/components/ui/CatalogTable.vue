@@ -5,6 +5,7 @@
     :columns="mergedColumns"
     :loading="loading"
     :max-height="maxHeight"
+    :row-height="rowHeight"
     @row-click="(item) => $emit('rowClick', item as T)"
   >
     <!-- 1. Изображение -->
@@ -64,11 +65,11 @@
     <!-- 6. Штрихкоды -->
     <template #cell(barcodes)="{ item }">
       <div
-        v-if="Array.isArray((item as any).barcodes) && (item as any).barcodes.length"
+        v-if="item.barcodes?.length"
         class="flex flex-wrap gap-4 min-w-0"
       >
         <AppTableCell
-          v-for="bc in ((item as any).barcodes as string[])"
+          v-for="bc in (item.barcodes as string[])"
           :key="String(bc)"
           :value="String(bc)"
           mono
@@ -79,17 +80,6 @@
           :py="4"
         />
       </div>
-      <AppTableCell
-        v-else-if="(item as any).barcode"
-        :value="String((item as any).barcode)"
-        mono
-        color="muted"
-        bg="secondary"
-        border
-        :px="6"
-        :py="4"
-        align="center"
-      />
       <AppTableCell v-else value="—" color="muted" align="center" />
     </template>
 
@@ -147,11 +137,13 @@ const props = withDefaults(
     items: T[]
     loading?: boolean
     maxHeight?: string
+    rowHeight?: number
     extraColumns?: TableColumn<T>[]
     hideColumns?: string[]
   }>(),
   {
     loading: false,
+    rowHeight: 90,
     extraColumns: () => [],
     hideColumns: () => [],
   },

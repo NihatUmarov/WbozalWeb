@@ -93,7 +93,8 @@ onBeforeUnmount(() => {
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Контейнер для контента страниц */
@@ -102,6 +103,9 @@ onBeforeUnmount(() => {
   width: 100%;
   padding: 80px 2.5% 0px 2.5%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .app-container :deep(.main-header[style*='position: fixed']) + .main-content,

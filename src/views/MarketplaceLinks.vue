@@ -1,29 +1,39 @@
 <template>
   <MainLayout>
-    <div class="flex flex-col gap-16 p-16">
-      <div class="card flex flex-wrap items-center justify-between gap-12 p-16">
-        <div class="flex flex-col gap-4">
-          <h2 class="text-xl font-bold text-primary m-0">Интеграция с маркетплейсами</h2>
-          <p class="text-xs text-muted m-0">Связывайте карточки WB и OZON с товарами складе</p>
-        </div>
-        <div class="flex items-center gap-12 flex-wrap">
+    <BaseDataPage
+      title="Интеграция с маркетплейсами"
+      :items="activeTab === 'ozon' ? ozonProducts : wbProducts"
+      :columns="activeTab === 'ozon' ? ozonColumns : wbColumns"
+      :loading="loading"
+      :tabs="[
+        { label: 'Wildberries FBS', value: 'wb' },
+        { label: 'OZON FBS', value: 'ozon' }
+      ]"
+      :current-tab="activeTab"
+      @tab-change="switchTab($event as any)"
+    >
+      <template #header-actions>
+        <div class="flex items-center gap-12">
           <button class="btn btn-warning flex items-center gap-8" @click="isStopListModalOpen = true">
-            <span>🛑 Стоп-лист товаров</span>
+            <span>🛑 Стоп-лист</span>
           </button>
           <button class="btn btn-primary flex items-center gap-8" :disabled="isSyncing" @click="handleSync">
             <span v-if="isSyncing" class="btn-spinner"></span>
-            <span>Обновить карточки из МП</span>
+            <span>Обновить из МП</span>
           </button>
         </div>
-      </div>
+      </template>
 
-      <div class="page-tabs">
-        <button :class="['tab-btn', { 'tab-btn--active': activeTab === 'wb' }]" @click="switchTab('wb')">Wildberries FBS</button>
-        <button :class="['tab-btn', { 'tab-btn--active': activeTab === 'ozon' }]" @click="switchTab('ozon')">OZON FBS</button>
-      </div>
-
-      <div class="card no-padding overflow-hidden">
-        <BaseTable v-if="activeTab === 'wb'" :items="wbProducts" :columns="wbColumns" :loading="loading" @rowClick="openLinkModal">
+      <template #default="{ registerTable }">
+        <BaseTable
+          :ref="registerTable"
+          :items="activeTab === 'ozon' ? ozonProducts : wbProducts"
+          :columns="activeTab === 'ozon' ? ozonColumns : wbColumns"
+          :loading="loading"
+          :row-height="80"
+          @row-click="openLinkModal"
+        >
+          <!-- Unified Slots -->
           <template #cell(linkedIdName)="{ item }">
             <div class="flex flex-col min-w-0 gap-4" v-if="item.linkedIdName">
               <AppTableCell :value="item.linkedName" bold size="xs" />
@@ -32,32 +42,24 @@
             </div>
             <AppBadge v-else variant="error" text="Не привязан" />
           </template>
+
           <template #cell(vendorCode)="{ value }">
             <AppTableCell :value="String(value)" mono size="xs" color="muted" bg="secondary" border :px="6" :py="4" />
           </template>
-        </BaseTable>
 
-        <BaseTable v-if="activeTab === 'ozon'" :items="ozonProducts" :columns="ozonColumns" :loading="loading" @rowClick="openLinkModal">
-          <template #cell(linkedIdName)="{ item }">
-            <div class="flex flex-col min-w-0 gap-4" v-if="item.linkedIdName">
-              <AppTableCell :value="item.linkedName" bold size="xs" />
-              <AppTableCell :value="`ID: ${item.linkedIdName} | Арт: ${item.linkedArt}`" mono size="xs" color="muted" />
-              <AppBadge v-if="item.isLinkedToKit" variant="info" text="Комплект" />
-            </div>
-            <AppBadge v-else variant="error" text="Не привязан" />
-          </template>
           <template #cell(sku)="{ value }">
             <AppTableCell :value="String(value)" mono size="xs" color="muted" bg="secondary" border :px="6" :py="4" />
           </template>
         </BaseTable>
-      </div>
-    </div>
+      </template>
+    </BaseDataPage>
 
+    <!-- Modal for Linking -->
     <BaseDialog v-model:is-open="isLinkModalOpen" variant="modal" max-width="2xl">
-      <template #header><h2 class="text-lg font-bold m-0">Настройка связи со складом</h2></template>
+      <template #header><h2 class="text-lg font-bold m-0">Настройка связи</h2></template>
       <div class="flex flex-col gap-16 py-8" v-if="selectedMarketplaceProduct">
         <div class="flex flex-col gap-8 p-16 bg-secondary rounded-8 border-dark">
-          <span class="text-[10px] font-bold text-muted uppercase tracking-wider block">Карточка на маркетплейсе:</span>
+          <span class="text-[10px] font-bold text-muted uppercase tracking-wider block">Маркетплейс:</span>
           <div class="font-bold text-sm text-primary">{{ selectedMarketplaceProduct.marketplaceName }}</div>
           <div class="text-xs text-muted mt-2 font-mono">
             Арт: <span class="font-bold text-primary">{{ activeTab === 'ozon' ? (selectedMarketplaceProduct as OzonProduct).marking : (selectedMarketplaceProduct as WbProduct).vendorCode }}</span>
@@ -65,7 +67,7 @@
         </div>
         <hr class="border-b" />
         <div v-if="selectedWarehouseCard" class="flex flex-col gap-8">
-          <span class="text-[10px] font-bold text-muted uppercase tracking-wider block">Привязанный товар WMS:</span>
+          <span class="text-[10px] font-bold text-muted uppercase tracking-wider block">Товар WMS:</span>
           <div class="flex items-center gap-12 p-12 bg-secondary border-dark rounded-8">
             <div class="shrink-0 bg-surface border-dark rounded-6 overflow-hidden flex items-center justify-center" style="width: 48px; height: 48px; padding: 4px">
               <img v-if="selectedWarehouseCard.primaryImageURL" :src="selectedWarehouseCard.primaryImageURL" style="object-fit: contain; width: 100%; height: 100%" />
@@ -83,7 +85,7 @@
         </div>
         <div v-else class="flex flex-col gap-8">
           <div class="autocomplete-wrapper" ref="targetAutocompleteRef">
-            <input type="text" v-model="targetSearchQuery" class="input w-full" placeholder="Поиск товара для привязки..." @focus="isTargetDropdownOpen = true" />
+            <input type="text" v-model="targetSearchQuery" class="input w-full" placeholder="Поиск для привязки..." @focus="isTargetDropdownOpen = true" />
             <Transition name="dropdown-fade">
               <div v-if="isTargetDropdownOpen && filteredWarehouseCards.length" class="autocomplete-dropdown">
                 <div v-for="card in filteredWarehouseCards" :key="card.idName" class="autocomplete-item" @click="selectTarget(card)">
@@ -104,12 +106,14 @@
         </button>
       </template>
     </BaseDialog>
+
     <StopListModal v-model:is-open="isStopListModalOpen" />
   </MainLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import BaseDataPage from '@/components/ui/BaseDataPage.vue'
 import BaseTable, { AppBadge, AppTableCell, type TableColumn } from '@/components/ui/BaseTable.vue'
 import BaseDialog from '@/components/ui/UnifiedUI.vue'
 import StopListModal from '@/components/modals/StopListModal.vue'
@@ -187,7 +191,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 <style scoped>
 .autocomplete-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; }
-.autocomplete-dropdown { position: relative; width: 100%; background: var(--color-surface); border: 1px solid var(--color-border-dark); border-radius: 8px; max-height: 180px; overflow-y: auto; z-index: 50; box-shadow: var(--shadow-sm); margin-top: 4px; }
+.autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--color-surface); border: 1px solid var(--color-border-dark); border-radius: 8px; max-height: 180px; overflow-y: auto; z-index: 50; box-shadow: var(--shadow-sm); margin-top: 4px; }
 .autocomplete-item { padding: 10px 16px; cursor: pointer; display: flex; gap: 12px; font-size: 13px; align-items: center; transition: background 0.2s; color: var(--color-text-primary); }
 .autocomplete-item:hover { background: var(--color-background-secondary); }
 </style>

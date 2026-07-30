@@ -40,16 +40,33 @@ export interface MarketplaceProduct { marketplaceName: string; color: string | n
 export interface OzonProduct extends MarketplaceProduct { idOzonProduct: number; idProduct: number; sku: string; marking: string }
 export interface WbProduct extends MarketplaceProduct { idChrt: number; idNm: number; vendorCode: string }
 
+// --- Внутренняя нормализация для гарантированной чистоты данных ---
+const normalize = <T extends Product>(p: unknown): T => {
+  const raw = p as Record<string, unknown>
+  return {
+    ...raw,
+    barcodes: Array.isArray(raw.barcodes) ? raw.barcodes : (raw.barcode ? [String(raw.barcode)] : []),
+    cName: (raw.cName as string) || 'Без названия',
+    cArt: (raw.cArt as string) || '—',
+    size: (raw.size as string) || '—',
+    irQuant: (raw.irQuant as number) || 0,
+    iBronTask: (raw.iBronTask as number) || 0,
+    defectQuant: (raw.defectQuant as number) || 0,
+    isDefect: !!raw.isDefect,
+    isKit: !!raw.isKit,
+  } as unknown as T
+}
+
 export const productService = {
-  getProducts: () => httpClient.get<Product[]>('/api/seller/cards/get').then(r => r.data),
-  getRemains: (isDefect = false) => httpClient.post<Product[]>('/api/seller/remains/get_remains', null, { params: { isDefect } }).then(r => r.data),
-  getProductById: (id: number) => httpClient.get<CardDetailItem>(`/api/seller/cards/${id}`).then(r => r.data),
+  getProducts: () => httpClient.get<Product[]>('/api/seller/cards/get').then(r => r.data.map(p => normalize<Product>(p))),
+  getRemains: (isDefect = false) => httpClient.post<Product[]>('/api/seller/remains/get_remains', null, { params: { isDefect } }).then(r => r.data.map(p => normalize<Product>(p))),
+  getProductById: (id: number) => httpClient.get<CardDetailItem>(`/api/seller/cards/${id}`).then(r => normalize<CardDetailItem>(r.data)),
   deleteProduct: (id: number) => httpClient.delete<{ success: boolean; message: string }>(`/api/seller/cards/${id}`).then(r => r.data),
 
   getLabelTemplate: (id: number, defaultType = '60x40') => httpClient.get<LabelTemplate>(`/api/seller/cards/${id}/label`, { params: { defaultType } }).then(r => r.data),
   saveLabelTemplate: (payload: SaveLabelRequest) => httpClient.post<{ success: boolean }>('/api/seller/cards/label/save', payload).then(r => r.data),
 
-  getStopList: () => httpClient.get<StopListItem[]>('/api/seller/cards/stop-list').then(r => r.data),
+  getStopList: () => httpClient.get<StopListItem[]>('/api/seller/cards/stop-list').then(r => r.data.map(p => normalize<StopListItem>(p))),
   updateStopList: (payload: { idNames: number[]; isActive: boolean }) => httpClient.post<{ success: boolean; message: string }>('/api/seller/cards/stop-list/update', payload).then(r => r.data),
 
   saveKit: (payload: SaveKitRequest) => httpClient.post<{ success: boolean; message: string }>('/api/seller/cards/kit/save', payload).then(r => r.data),

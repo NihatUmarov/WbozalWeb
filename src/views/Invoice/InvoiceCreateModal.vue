@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :is-open="isOpen" variant="sheet" max-width="5xl" @update:is-open="close">
+  <BaseModal :is-open="isOpen" variant="sheet" max-width="7xl" @update:is-open="close">
     <template #header>
       <div class="flex items-center gap-12">
         <AppBadge
@@ -126,6 +126,17 @@
 
             <template #cell(actions)="{ item }: { item: Product }">
               <div class="flex items-center justify-end gap-12 w-full">
+                <div v-if="modelType === 'FBO' && item.barcodes?.length > 1" class="flex flex-col items-start gap-4">
+                  <span class="text-[10px] text-muted font-medium">Штрихкод</span>
+                  <select
+                    class="input text-xs"
+                    style="width: 140px; height: 32px; padding: 0 6px"
+                    v-model="inputBarcodes[item.idName]"
+                  >
+                    <option v-for="bc in item.barcodes" :key="bc" :value="bc">{{ bc }}</option>
+                  </select>
+                </div>
+
                 <div v-if="modelType === 'FBO'" class="flex flex-col items-start gap-4">
                   <span class="text-[10px] text-muted font-medium">Срок годности</span>
                   <input
@@ -203,6 +214,7 @@ const emit = defineEmits<{ 'update:isOpen': [value: boolean]; saved: [] }>()
 const toast = useToast()
 const inputAmounts = reactive<Record<number, number | string>>({})
 const inputExpirations = reactive<Record<number, string>>({})
+const inputBarcodes = reactive<Record<number, string>>({})
 const { loading, run: runLoadCards } = useAsync()
 const { loading: isSaving, run: runSaveDoc } = useAsync()
 
@@ -230,7 +242,7 @@ const createActionColumns = computed<TableColumn<Product>[]>(() => {
     {
       key: 'actions',
       label: '',
-      width: props.modelType === 'FBO' ? '260px' : '110px',
+      width: props.modelType === 'FBO' ? '400px' : '110px',
     },
   ]
 })
@@ -274,10 +286,21 @@ const calculateAvailableToShip = (item: Product) =>
 const loadAvailableItems = () => {
   runLoadCards(
     async () => {
+      let data: Product[] = []
       if (props.modelType === 'ORD') {
-        availableCards.value = await productService.getRemains(filterDefect.value)
+        data = await productService.getRemains(filterDefect.value)
       } else {
-        availableCards.value = await productService.getProducts()
+        data = await productService.getProducts()
+      }
+      availableCards.value = data
+
+      // Инициализируем штрихкоды по умолчанию для FBO
+      if (props.modelType === 'FBO') {
+        data.forEach(card => {
+          if (card.barcodes?.length > 1 && !inputBarcodes[card.idName]) {
+            inputBarcodes[card.idName] = card.barcodes[0]
+          }
+        })
       }
     },
     { toast, errorMessage: 'Не удалось загрузить данные товаров' },
@@ -305,7 +328,7 @@ const quickAddProduct = (card: Product, customQty = 1) => {
   const limit = calculateAvailableToShip(card)
   if (props.modelType === 'ORD' && limit <= 0) return toast.warning('Товара нет в наличии!')
 
-  const barcode = card.barcodes?.[0] || 'Без ШК'
+  const barcode = inputBarcodes[card.idName] || card.barcodes?.[0] || (card as Product & { barcode?: string }).barcode || 'Без ШК'
   const selectedExpDate = inputExpirations[card.idName] || null
   const conflictingItem = addedItems.value.find(
     (item) => item.barcode === barcode && item.expirationDate !== selectedExpDate,
@@ -391,6 +414,7 @@ watch(
     addedItems.value = []
     Object.keys(inputAmounts).forEach((k) => delete inputAmounts[Number(k)])
     Object.keys(inputExpirations).forEach((k) => delete inputExpirations[Number(k)])
+    Object.keys(inputBarcodes).forEach((k) => delete inputBarcodes[Number(k)])
     filterDefect.value = false
     showAddedItemsModal.value = false
     loadAvailableItems()

@@ -2,7 +2,7 @@
   <MainLayout>
     <BaseDataPage
       ref="dataPageRef"
-      title="Номенклатура"
+      title="Карточки товаров"
       :items="displayedCards"
       :loading="loading"
       :columns="extraCols"
