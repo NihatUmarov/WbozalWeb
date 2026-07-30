@@ -1,24 +1,17 @@
 <template>
-  <div
-    class="table-container"
-    :style="{ maxHeight: maxHeight }"
-    ref="scrollContainer"
-    style="overflow: auto; position: relative"
-    @scroll="onScroll"
-  >
-    <!-- Лоадер -->
+  <div class="base-table-root" :style="{ maxHeight: maxHeight }">
+    <!-- Глобальный лоадер -->
     <div
       v-if="loading"
-      class="table-state absolute inset-0 bg-surface/80 z-50 flex flex-col items-center justify-center"
+      class="table-state absolute inset-0 bg-surface/80 z-[100] flex flex-col items-center justify-center"
       style="backdrop-filter: blur(2px); background: rgba(255, 255, 255, 0.7);"
     >
       <div class="global-spin"></div>
       <p class="text-sm font-medium mt-8">{{ loadingText }}</p>
     </div>
 
-    <div class="table-responsive" style="width: 100%; min-width: 100%">
-
-      <!-- КНОПКА НАСТРОЕК -->
+    <!-- 1. ФИКСИРОВАННАЯ ШАПКА (Вне скролла) -->
+    <div class="base-table-header">
       <div v-if="hasConfigurableColumns" class="table-settings-corner">
         <button
           class="settings-icon-btn"
@@ -40,15 +33,11 @@
         </Transition>
       </div>
 
-      <table
-        class="minimal-table resizable-table"
-        style="table-layout: fixed; width: 100%; border-collapse: separate; border-spacing: 0"
-      >
+      <table class="minimal-table" style="table-layout: fixed; width: 100%">
         <colgroup>
-          <col v-for="col in dynamicColumns" :key="String(col.key)" :style="{ width: columnWidths[String(col.key)] || col.width || 'auto' }" />
+          <col v-for="col in dynamicColumns" :key="'h-' + String(col.key)" :style="{ width: columnWidths[String(col.key)] || col.width || 'auto' }" />
         </colgroup>
-
-        <thead style="position: sticky; top: 0; z-index: 40; background: #fff; box-shadow: 0 1px 0 #e2e8f0">
+        <thead>
           <tr>
             <th
               v-for="(col, index) in dynamicColumns"
@@ -62,7 +51,7 @@
               @click="col.sortable !== false && handleSort(String(col.key))"
             >
               <div class="th-content flex items-center justify-between w-full cursor-move">
-                <span class="truncate">{{ col.label }}</span>
+                <span class="truncate text-sm font-semibold text-secondary">{{ col.label }}</span>
                 <span v-if="sortKey === String(col.key)" class="sort-arrows ml-4 shrink-0">
                   <span :class="{ active: sortOrder === 'asc' }">▲</span>
                   <span :class="{ active: sortOrder === 'desc' }">▼</span>
@@ -75,43 +64,64 @@
             </th>
           </tr>
         </thead>
-
-        <tbody :style="virtualStyles">
-          <!-- Пустые состояния -->
-          <tr v-if="!loading && items.length === 0">
-            <td :colspan="dynamicColumns.length" class="py-60 text-muted" style="border: none">
-              <div class="flex flex-col items-center justify-center sticky left-0" :style="{ width: `${viewportWidth}px` }">
-                <span class="text-3xl mb-12 block">{{ emptyIcon }}</span>
-                <p class="text-base font-semibold">{{ emptyText }}</p>
-              </div>
-            </td>
-          </tr>
-          <tr v-else-if="!loading && filteredAndSortedItems.length === 0">
-            <td :colspan="dynamicColumns.length" class="py-60 text-muted" style="border: none">
-              <div class="flex flex-col items-center justify-center sticky left-0" :style="{ width: `${viewportWidth}px` }">
-                <span class="text-3xl mb-12 block">🔍</span>
-                <p class="text-base font-semibold">Ничего не найдено</p>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Реальные строки -->
-          <tr
-            v-else
-            v-for="(item, index) in visibleItems"
-            :key="getItemId(item, index)"
-            :class="[rowClass ? rowClass(item) : '', 'row-clickable']"
-            :style="{ height: `${rowHeight}px`, maxHeight: `${rowHeight}px` }"
-            @click="handleRowClick(item, $event)"
-          >
-            <td v-for="col in dynamicColumns" :key="String(col.key)" class="truncate" :style="{ height: `${rowHeight}px` }">
-              <slot :name="`cell(${String(col.key)})`" :item="item" :index="index + startIndex" :value="getVal(item, col.key)">
-                {{ getVal(item, col.key) ?? '—' }}
-              </slot>
-            </td>
-          </tr>
-        </tbody>
       </table>
+    </div>
+
+    <!-- 2. СКРОЛЛИРУЕМАЯ ОБЛАСТЬ -->
+    <div
+      class="base-table-scroll-container"
+      ref="scrollContainer"
+      @scroll.passive="onScroll"
+    >
+      <!-- Фантом для скроллбара -->
+      <div :style="{ height: `${totalHeight}px`, width: '1px', pointerEvents: 'none' }"></div>
+
+      <!-- Контент (двигается за скроллом через transform) -->
+      <div
+        class="base-table-body-window"
+        :style="{ transform: `translate3d(0, ${offsetTop}px, 0)` }"
+      >
+        <table class="minimal-table" style="table-layout: fixed; width: 100%">
+          <colgroup>
+            <col v-for="col in dynamicColumns" :key="'b-' + String(col.key)" :style="{ width: columnWidths[String(col.key)] || col.width || 'auto' }" />
+          </colgroup>
+          <tbody>
+            <!-- Пустые состояния -->
+            <tr v-if="!loading && items.length === 0">
+              <td :colspan="dynamicColumns.length" class="py-60 text-muted" style="border: none">
+                <div class="flex flex-col items-center justify-center">
+                  <span class="text-3xl mb-12 block">{{ emptyIcon }}</span>
+                  <p class="text-base font-semibold">{{ emptyText }}</p>
+                </div>
+              </td>
+            </tr>
+            <tr v-else-if="!loading && filteredAndSortedItems.length === 0">
+              <td :colspan="dynamicColumns.length" class="py-60 text-muted" style="border: none">
+                <div class="flex flex-col items-center justify-center">
+                  <span class="text-3xl mb-12 block">🔍</span>
+                  <p class="text-base font-semibold">Ничего не найдено</p>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Реальные строки -->
+            <tr
+              v-else
+              v-for="(item, index) in visibleItems"
+              :key="getItemId(item, index)"
+              :class="[rowClass ? rowClass(item) : '', 'row-clickable']"
+              :style="{ height: `${rowHeight}px`, maxHeight: `${rowHeight}px` }"
+              @click="handleRowClick(item, $event)"
+            >
+              <td v-for="col in dynamicColumns" :key="String(col.key)" class="truncate" :style="{ height: `${rowHeight}px` }">
+                <slot :name="`cell(${String(col.key)})`" :item="item" :index="index + startIndex" :value="getVal(item, col.key)">
+                  {{ getVal(item, col.key) ?? '—' }}
+                </slot>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Excel Confirm -->
@@ -169,7 +179,7 @@ import { useViewSettings } from '@/composables/useViewSettings'
 const props = withDefaults(defineProps<{
   items: T[]; columns: TableColumn<T>[]; loading?: boolean; loadingText?: string; emptyText?: string; emptyIcon?: string; maxHeight?: string; rowClass?: (item: T) => string; rowHeight?: number
 }>(), {
-  loading: false, loadingText: 'Загрузка...', emptyText: 'Нет данных', emptyIcon: '📂', maxHeight: 'calc(100vh - 280px)', rowHeight: 80
+  loading: false, loadingText: 'Загрузка...', emptyText: 'Нет данных', emptyIcon: '📂', maxHeight: 'calc(100vh - 280px)', rowHeight: 120
 })
 
 const emit = defineEmits<{ (e: 'rowClick', item: T): void }>()
@@ -178,31 +188,20 @@ const { showImage, showArt, showWbArt, showSize } = useViewSettings()
 const scrollContainer = ref<HTMLElement | null>(null)
 const scrollTop = ref(0)
 const viewportHeight = ref(800)
-const viewportWidth = ref(1000)
 
 const startIndex = ref(0)
-const endIndex = ref(100)
+const visibleCount = ref(30)
 
-const syncViewport = () => {
-  const items = filteredAndSortedItems.value
-  if (!items.length) { startIndex.value = 0; endIndex.value = 100; return }
-  const currentScroll = scrollContainer.value?.scrollTop || 0
-  const currentViewHeight = scrollContainer.value?.clientHeight || 800
-  const startRow = Math.floor(currentScroll / props.rowHeight)
-  const rowsInView = Math.ceil(currentViewHeight / props.rowHeight)
-  const buffer = 40
-  startIndex.value = Math.max(0, startRow - buffer)
-  endIndex.value = Math.min(items.length, startRow + rowsInView + buffer)
-  scrollTop.value = currentScroll
+const onScroll = (e: Event) => {
+  const target = e.target as HTMLElement
+  scrollTop.value = target.scrollTop
+  startIndex.value = Math.max(0, Math.floor(target.scrollTop / props.rowHeight) - 5)
 }
 
-const onScroll = () => { window.requestAnimationFrame(syncViewport) }
-
-const updateViewportMetrics = () => {
+const updateMetrics = () => {
   if (scrollContainer.value) {
     viewportHeight.value = scrollContainer.value.clientHeight
-    viewportWidth.value = scrollContainer.value.clientWidth
-    syncViewport()
+    visibleCount.value = Math.ceil(viewportHeight.value / props.rowHeight) + 15
   }
 }
 
@@ -225,7 +224,7 @@ const filteredAndSortedItems = computed(() => {
       if (k === 'barcodes' || k === 'barcode') {
         const raw = item as Record<string, unknown>
         const bcs = Array.isArray(raw.barcodes) ? (raw.barcodes as string[]) : [String(raw.barcode || '')]
-        return bcs.some(b => String(b || '').toLowerCase().includes(query))
+        return bcs.some(b => b.toLowerCase().includes(query))
       }
       return String(val ?? '').toLowerCase().includes(query)
     }))
@@ -235,29 +234,20 @@ const filteredAndSortedItems = computed(() => {
     const key = sortKey.value; const order = sortOrder.value
     res.sort((a, b) => {
       const vA = getVal(a, key), vB = getVal(b, key)
-      if (vA === vB) return 0
-      if (vA == null) return 1
-      if (vB == null) return -1
-      const mod = order === 'asc' ? 1 : -1
-      if (typeof vA === 'number' && typeof vB === 'number') return (vA - vB) * mod
-      return String(vA) > String(vB) ? mod : -mod
+      if (vA === vB) return 0; if (vA == null) return 1; if (vB == null) return -1
+      return order === 'asc' ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1)
     })
   }
   return res
 })
 
-const visibleItems = computed(() => filteredAndSortedItems.value.slice(startIndex.value, endIndex.value))
+const visibleItems = computed(() => filteredAndSortedItems.value.slice(startIndex.value, startIndex.value + visibleCount.value))
+const offsetTop = computed(() => startIndex.value * props.rowHeight)
+const totalHeight = computed(() => filteredAndSortedItems.value.length * props.rowHeight)
 
-const virtualStyles = computed(() => {
-  const total = filteredAndSortedItems.value.length
-  const top = startIndex.value * props.rowHeight
-  const bottom = Math.max(0, (total - endIndex.value) * props.rowHeight)
-  return { paddingTop: `${top}px`, paddingBottom: `${bottom}px`, display: 'table-row-group' }
-})
-
-watch(() => filteredAndSortedItems.value.length, (newLen, oldLen) => {
-  if (newLen < oldLen && scrollContainer.value) scrollContainer.value.scrollTop = 0
-  syncViewport()
+watch(() => filteredAndSortedItems.value.length, () => {
+  if (scrollContainer.value) scrollContainer.value.scrollTop = 0
+  startIndex.value = 0
 })
 
 const handleSort = (k: string) => {
@@ -265,7 +255,7 @@ const handleSort = (k: string) => {
   else { sortKey.value = k; sortOrder.value = 'asc' }
 }
 
-// UI LOGIC (SETTINGS, DnD, RESIZE)
+// Настройки колонок
 const showSettings = ref(false); const dragOverIndex = ref<number | null>(null); let draggedIndex: number | null = null
 const columnOrder = ref<TableColumn<T>[]>([]); const columnWidths = reactive<Record<string, string>>({})
 const hasConfigurableColumns = computed(() => props.columns.some(c => ['primaryImageURL', 'cArt', 'cArtWB', 'size'].includes(String(c.key))))
@@ -352,13 +342,53 @@ const vClickOutside = {
   }
 }
 
-onMounted(async () => { await nextTick(); updateViewportMetrics(); window.addEventListener('resize', updateViewportMetrics) })
-onUnmounted(() => window.removeEventListener('resize', updateViewportMetrics))
+onMounted(async () => {
+  await nextTick()
+  updateMetrics()
+  window.addEventListener('resize', updateMetrics)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateMetrics)
+})
 
 defineExpose({ triggerExcelExport, getScrollTop: () => scrollContainer.value?.scrollTop || 0, setScrollTop: (v: number) => { if (scrollContainer.value) scrollContainer.value.scrollTop = v } })
 </script>
 
 <style scoped>
+.base-table-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  overflow: hidden;
+  position: relative;
+}
+
+.base-table-header {
+  flex-shrink: 0;
+  z-index: 50;
+  background: var(--color-background-secondary);
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.base-table-scroll-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  scrollbar-width: thin;
+}
+
+.base-table-body-window {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  will-change: transform;
+}
+
 .table-settings-corner { position: absolute; top: 8px; right: 8px; z-index: 60; }
 .settings-icon-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: var(--color-background-secondary); border: 1px solid var(--color-border-dark); border-radius: 4px; cursor: pointer; opacity: 0.6; transition: 0.2s; }
 .settings-icon-btn:hover, .settings-icon-btn--active { opacity: 1; background: #fff; border-color: var(--color-primary); }
