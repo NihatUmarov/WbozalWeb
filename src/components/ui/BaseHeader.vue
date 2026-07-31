@@ -1,75 +1,40 @@
-<!-- BaseHeader.vue -->
 <template>
-  <header class="main-header glass-effect">
-    <div class="main-header__left">
-      <div class="main-header__logo" @click="router.push('/')">WBOZAL.RU</div>
-
-      <nav class="header-dock">
-        <router-link
-          v-for="item in visibleMenuItems"
-          :key="item.label"
-          :to="item.to"
-          class="dock-item"
-          active-class="active"
-        >
-          <div class="dock-button">
-            <component :is="item.icon" class="dock-icon mobile-only" />
-            <span class="dock-label">{{ item.label }}</span>
-          </div>
-        </router-link>
-      </nav>
-    </div>
-
-    <div class="main-header__right">
-      <div class="brand-dropdown" ref="dropdownRef">
-        <div
-          class="dropdown-trigger"
-          :class="{ 'not-selected': !selectedId, 'is-open': isDropdownOpen }"
-          @click="toggleDropdown"
-        >
-          <Building2 class="dropdown-icon" />
-          <span class="trigger-text">{{ currentJurpersonName }}</span>
-          <ChevronDown class="arrow-icon" :class="{ rotate: isDropdownOpen }" />
-        </div>
-
-        <Transition name="dropdown-fade">
-          <div v-if="isDropdownOpen" class="floating-dropdown-menu" @click.stop>
-            <div class="search-wrapper">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Поиск организации..."
-                class="input search-input"
-              />
-            </div>
-
-            <div class="dropdown-list">
-              <div
-                v-for="jurperson in filteredJurpersons"
-                :key="jurperson.idJurperson"
-                :class="['dropdown-item', { active: jurperson.idJurperson === selectedId }]"
-                @click="handleJurpersonSelect(jurperson.idJurperson)"
-              >
-                <div class="brand-info-block">
-                  <span class="brand-name">{{ jurperson.jurpersonName }}</span>
-                  <span class="brand-id">ID: {{ jurperson.idJurperson }}</span>
-                </div>
-                <Check v-if="jurperson.idJurperson === selectedId" class="check-mark-icon" />
-              </div>
-              <div v-if="filteredJurpersons.length === 0" class="no-results">Ничего не найдено</div>
-            </div>
-
-            <div class="dropdown-footer">
-              <button class="add-org-btn" @click="goToCreatePage">Мои организации</button>
-            </div>
-          </div>
-        </Transition>
+  <header class="main-header">
+    <div class="main-header__inner">
+      <div class="main-header__left">
+        <div class="main-header__logo" @click="router.push('/')">WBOZAL.RU</div>
+        <nav class="header-dock">
+          <router-link v-for="i in visibleMenuItems" :key="i.label" :to="i.to" class="dock-item" active-class="active">
+            <div class="dock-button"><span class="dock-label">{{ i.label }}</span></div>
+          </router-link>
+        </nav>
       </div>
 
-      <button class="logout-btn" @click="handleLogoutAction" title="Выйти">
-        <span class="logout-text">Выход</span>
-        <LogOut class="logout-icon" />
-      </button>
+      <div class="main-header__right">
+        <div class="brand-dropdown" ref="dropdownRef">
+          <div class="dropdown-trigger" :class="{ 'not-selected': !selectedId, 'is-open': isDropdownOpen }" @click="isDropdownOpen = !isDropdownOpen">
+            <Building2 class="dropdown-icon" />
+            <span class="trigger-text">{{ currentJurperson?.jurpersonName || 'Выберите организацию' }}</span>
+            <ChevronDown class="arrow-icon" :class="{ rotate: isDropdownOpen }" />
+          </div>
+
+          <Transition name="dropdown-fade">
+            <div v-if="isDropdownOpen" class="floating-dropdown-menu" @click.stop>
+              <div class="search-wrapper"><input v-model="searchQuery" type="text" placeholder="Поиск..." class="input search-input" /></div>
+              <div class="dropdown-list">
+                <div v-for="j in filteredJurpersons" :key="j.idJurperson" :class="['dropdown-item', { active: j.idJurperson === selectedId }]" @click="handleJurpersonSelect(j.idJurperson)">
+                  <div class="brand-info-block"><span class="brand-name">{{ j.jurpersonName }}</span><span class="brand-id">ID: {{ j.idJurperson }}</span></div>
+                  <Check v-if="j.idJurperson === selectedId" class="check-mark-icon" />
+                </div>
+                <div v-if="!filteredJurpersons.length" class="no-results">Ничего не найдено</div>
+              </div>
+              <div class="dropdown-footer"><button class="add-org-btn" @click="goToCreatePage">Мои организации</button></div>
+            </div>
+          </Transition>
+        </div>
+
+        <button class="logout-btn" @click="handleLogout" title="Выйти"><span class="logout-text">Выход</span><LogOut class="logout-icon" /></button>
+      </div>
     </div>
   </header>
 </template>
@@ -77,85 +42,32 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  Building2,
-  ChevronDown,
-  Check,
-  LogOut,
-  Package,
-  FileText,
-  CreditCard,
-  User,
-} from 'lucide-vue-next'
+import { Building2, ChevronDown, Check, LogOut } from 'lucide-vue-next'
 import { useJurpersons } from '@/composables/useJurpersons'
-import { adminService } from '@/api/adminService' // Импорт остается
+import { adminService, type UserPermissionsResponse } from '@/api/adminService'
 
-const router = useRouter()
-const dropdownRef = ref<HTMLElement | null>(null)
-const searchQuery = ref('')
-const isDropdownOpen = ref(false)
-
-const permissions = adminService.permissions
-
+const router = useRouter(), dropdownRef = ref<HTMLElement | null>(null), searchQuery = ref(''), isDropdownOpen = ref(false)
 const menuItems = [
-  { label: 'Остатки', icon: Package, to: '/remains', permission: 'remains' as const },
-  { label: 'Накладные', icon: FileText, to: '/documents', permission: 'invoice' as const },
-  { label: 'Карточки', icon: CreditCard, to: '/cards', permission: 'cards' as const },
-  { label: 'Интеграции', icon: Building2, to: '/marketplace-links', permission: 'cards' as const },
-  { label: 'Профиль', icon: User, to: '/profile', permission: 'profile' as const },
+  { label: 'Остатки', to: '/remains', p: 'remains' as keyof UserPermissionsResponse },
+  { label: 'Накладные', to: '/documents', p: 'invoice' as keyof UserPermissionsResponse },
+  { label: 'Карточки', to: '/cards', p: 'cards' as keyof UserPermissionsResponse },
+  { label: 'Интеграции', to: '/marketplace-links', p: 'cards' as keyof UserPermissionsResponse },
+  { label: 'Профиль', to: '/profile', p: 'profile' as keyof UserPermissionsResponse }
 ]
 
-const visibleMenuItems = computed(() =>
-  menuItems.filter((item) => permissions.value[item.permission] === true),
-)
-
-const { jurpersons, selectedId, currentJurperson, load, select } = useJurpersons(undefined)
-const currentJurpersonName = computed(
-  () => currentJurperson.value?.jurpersonName || 'Выберите организацию',
-)
+const visibleMenuItems = computed(() => menuItems.filter(i => adminService.permissions.value[i.p]))
+const { jurpersons, selectedId, currentJurperson, load, select } = useJurpersons()
 
 const filteredJurpersons = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return jurpersons.value
-  return jurpersons.value.filter((j) => {
-    const name = j.jurpersonName?.toLowerCase() || ''
-    const id = j.idJurperson?.toString() || ''
-    return name.includes(query) || id.includes(query)
-  })
+  const q = searchQuery.value.trim().toLowerCase()
+  return q ? jurpersons.value.filter(j => j.jurpersonName?.toLowerCase().includes(q) || j.idJurperson?.toString().includes(q)) : jurpersons.value
 })
 
-const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value)
+const handleJurpersonSelect = async (id: number) => { if (id !== selectedId.value && await select(id)) window.location.reload() }
+const handleClickOutside = (e: MouseEvent) => { if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node)) isDropdownOpen.value = false }
+const goToCreatePage = () => { isDropdownOpen.value = false; router.push('/select-jurperson') }
+const handleLogout = () => { localStorage.clear(); window.location.href = '/login' }
 
-const handleJurpersonSelect = async (idJurperson: number) => {
-  if (idJurperson === selectedId.value) return
-  if (await select(idJurperson)) {
-    isDropdownOpen.value = false
-    window.location.reload()
-  }
-}
-
-const handleClickOutside = (event: MouseEvent) => {
-  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
-    isDropdownOpen.value = false
-  }
-}
-
-const goToCreatePage = () => {
-  isDropdownOpen.value = false
-  router.push('/select-jurperson')
-}
-
-const handleLogoutAction = () => {
-  localStorage.clear()
-  window.location.href = '/login'
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-  load()
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
+onMounted(() => { document.addEventListener('click', handleClickOutside); load() })
+onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>

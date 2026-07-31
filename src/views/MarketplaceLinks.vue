@@ -2,23 +2,24 @@
   <MainLayout>
     <BaseDataPage
       title="Интеграция с маркетплейсами"
-      :items="(activeTab === 'ozon' ? ozonProducts : wbProducts) as any"
-      :columns="(activeTab === 'ozon' ? ozonColumns : wbColumns) as any"
+      :items="activeTab === 'ozon' ? (ozonProducts as (OzonProduct | WbProduct)[]) : (wbProducts as (OzonProduct | WbProduct)[])"
+      :columns="activeTab === 'ozon' ? (ozonColumns as TableColumn<OzonProduct | WbProduct>[]) : (wbColumns as TableColumn<OzonProduct | WbProduct>[])"
       :loading="loading"
       :tabs="[
         { label: 'Wildberries FBS', value: 'wb' },
         { label: 'OZON FBS', value: 'ozon' }
       ]"
       :current-tab="activeTab"
-      @tab-change="switchTab($event as any)"
+      @tab-change="switchTab($event as 'ozon' | 'wb')"
     >
       <template #header-actions>
         <div class="flex items-center gap-12">
-          <button class="btn btn-warning flex items-center gap-8" @click="isStopListModalOpen = true">
-            <span>🛑 Стоп-лист</span>
+          <button class="btn btn-secondary flex items-center gap-8" @click="isImportModalOpen = true">
+            <img src="@/components/icons/office-exel.svg" alt="Excel" width="20" height="20" />
+            <span>Импорт статусов</span>
           </button>
           <button class="btn btn-primary flex items-center gap-8" :disabled="isSyncing" @click="handleSync">
-            <span v-if="isSyncing" class="btn-spinner"></span>
+            <span v-if="isSyncing" class="btn-spinner" />
             <span>Обновить из МП</span>
           </button>
         </div>
@@ -27,28 +28,45 @@
       <template #default="{ registerTable }">
         <BaseTable
           :ref="registerTable"
-          :items="(activeTab === 'ozon' ? ozonProducts : wbProducts) as any"
-          :columns="(activeTab === 'ozon' ? ozonColumns : wbColumns) as any"
+          :items="activeTab === 'ozon' ? (ozonProducts as (OzonProduct | WbProduct)[]) : (wbProducts as (OzonProduct | WbProduct)[])"
+          :columns="activeTab === 'ozon' ? (ozonColumns as TableColumn<OzonProduct | WbProduct>[]) : (wbColumns as TableColumn<OzonProduct | WbProduct>[])"
           :loading="loading"
           :row-height="80"
-          @row-click="openLinkModal($event as any)"
+          @row-click="openLinkModal($event)"
         >
-          <!-- Unified Slots -->
-          <template #cell(linkedIdName)="{ item }: any">
-            <div class="flex flex-col min-w-0 gap-4" v-if="item.linkedIdName">
+          <template #cell(photo)="{ item }: { item: OzonProduct | WbProduct }">
+            <div class="w-[40px] h-[60px] flex items-center justify-center bg-secondary rounded-6 overflow-hidden mx-auto">
+              <img v-if="item.linkedImage" :src="item.linkedImage" alt="P" class="object-contain w-full h-full" />
+              <span v-else class="text-[10px] text-muted">No</span>
+            </div>
+          </template>
+
+          <template #cell(linkedIdName)="{ item }: { item: OzonProduct | WbProduct }">
+            <div class="flex flex-col min-w-0 gap-2" v-if="item.linkedIdName">
               <AppTableCell :value="item.linkedName" bold size="xs" />
-              <AppTableCell :value="`ID: ${item.linkedIdName} | Арт: ${item.linkedArt}`" mono size="xs" color="muted" />
-              <AppBadge v-if="item.isLinkedToKit" variant="info" text="Комплект" />
+              <div class="flex items-center gap-6">
+                <AppTableCell :value="`ID: ${item.linkedIdName} | Арт: ${item.linkedArt}`" mono size="xs" color="muted" />
+                <AppBadge v-if="item.isLinkedToKit" variant="info" text="Комплект" />
+              </div>
             </div>
             <AppBadge v-else variant="error" text="Не привязан" />
           </template>
 
-          <template #cell(vendorCode)="{ value }">
-            <AppTableCell :value="String(value)" mono size="xs" color="muted" bg="secondary" border :px="6" :py="4" />
+          <template #cell(barcodes)="{ item }: { item: OzonProduct | WbProduct }">
+            <div class="flex flex-col gap-2 min-w-0" v-if="item.barcodes?.length">
+              <AppTableCell v-for="bc in item.barcodes" :key="bc" :value="bc" mono size="xs" color="muted" />
+            </div>
+            <AppTableCell v-else value="—" color="muted" align="center" />
           </template>
 
-          <template #cell(sku)="{ value }">
-            <AppTableCell :value="String(value)" mono size="xs" color="muted" bg="secondary" border :px="6" :py="4" />
+          <template #cell(isActive)="{ item }: { item: OzonProduct | WbProduct }">
+            <div class="flex justify-center" @click.stop>
+              <label class="toggle">
+                <input type="checkbox" :checked="item.isActive" @change="toggleActive(item)" />
+                <div class="toggle-track" />
+                <span>{{ item.isActive ? 'В продаже' : 'Стоп' }}</span>
+              </label>
+            </div>
           </template>
         </BaseTable>
       </template>
@@ -101,13 +119,16 @@
       <template #footer>
         <button class="btn btn-secondary" @click="isLinkModalOpen = false">Отмена</button>
         <button class="btn btn-primary" :disabled="isSaving" @click="saveLink">
-          <span v-if="isSaving" class="btn-spinner"></span>
+          <span v-if="isSaving" class="btn-spinner" />
           <span v-else>Сохранить связь</span>
         </button>
       </template>
     </BaseDialog>
 
-    <StopListModal v-model:is-open="isStopListModalOpen" />
+    <BaseDialog v-model:is-open="isImportModalOpen" variant="modal" max-width="3xl">
+      <template #header><h2 class="text-xl font-bold m-0">Массовое обновление статусов</h2></template>
+      <StopListBulkImportModal v-if="isImportModalOpen" :catalog-stop-list="activeTab === 'ozon' ? (ozonProducts as MarketplaceProduct[]) : (wbProducts as MarketplaceProduct[])" :marketplace="activeTab" @close="isImportModalOpen = false" @updated="fetchData" />
+    </BaseDialog>
   </MainLayout>
 </template>
 
@@ -116,34 +137,42 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import BaseDataPage from '@/components/ui/BaseDataPage.vue'
 import BaseTable, { AppBadge, AppTableCell, type TableColumn } from '@/components/ui/BaseTable.vue'
 import BaseDialog from '@/components/ui/UnifiedUI.vue'
-import StopListModal from '@/components/modals/StopListModal.vue'
+import StopListBulkImportModal from '@/components/modals/StopListBulkImportModal.vue'
 import { productService, type OzonProduct, type WbProduct } from '@/api/productService'
 import type { Product } from '@/api/types'
 import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'
 
-const toast = useToast(); const { loading, run } = useAsync(); const isSaving = ref(false)
-const activeTab = ref<'ozon' | 'wb'>('wb'); const ozonProducts = ref<OzonProduct[]>([]); const wbProducts = ref<WbProduct[]>([]); const warehouseCards = ref<Product[]>([])
-const isLinkModalOpen = ref(false); const isStopListModalOpen = ref(false); const selectedMarketplaceProduct = ref<OzonProduct | WbProduct | null>(null); const targetIdName = ref<number | null>(null)
-const targetSearchQuery = ref(''); const isTargetDropdownOpen = ref(false); const targetAutocompleteRef = ref<HTMLElement | null>(null); const isSyncing = ref(false)
+const toast = useToast(), { loading, run } = useAsync(), isSaving = ref(false), isImportModalOpen = ref(false)
+const activeTab = ref<'ozon' | 'wb'>('wb'), ozonProducts = ref<OzonProduct[]>([]), wbProducts = ref<WbProduct[]>([]), warehouseCards = ref<Product[]>([])
+const isLinkModalOpen = ref(false), selectedMarketplaceProduct = ref<OzonProduct | WbProduct | null>(null), targetIdName = ref<number | null>(null)
+const targetSearchQuery = ref(''), isTargetDropdownOpen = ref(false), targetAutocompleteRef = ref<HTMLElement | null>(null), isSyncing = ref(false)
 
 const ozonColumns: TableColumn<OzonProduct>[] = [
-  { key: 'marking', label: 'Артикул Ozon', filterable: true, minWidth: '120px' },
-  { key: 'sku', label: 'SKU / Код', filterable: true, minWidth: '100px' },
-  { key: 'marketplaceName', label: 'Название на Ozon', filterable: true, minWidth: '200px' },
+  { key: 'photo', label: 'Фото', width: '60px' },
+  { key: 'marking', label: 'Артикул Ozon', filterable: true, minWidth: '100px' },
+  { key: 'marketplaceName', label: 'Название на Ozon', filterable: true, minWidth: '180px' },
+  { key: 'size', label: 'Размер', filterable: true, width: '70px' },
+  { key: 'barcodes', label: 'Штрихкоды', filterable: true, minWidth: '110px' },
   { key: 'linkedIdName', label: 'Связь WMS', minWidth: '220px' },
+  { key: 'isActive', label: 'В продаже', width: '120px' }
 ]
 
 const wbColumns: TableColumn<WbProduct>[] = [
-  { key: 'vendorCode', label: 'Артикул WB', filterable: true, minWidth: '120px' },
-  { key: 'marketplaceName', label: 'Название на WB', filterable: true, minWidth: '200px' },
+  { key: 'photo', label: 'Фото', width: '60px' },
+  { key: 'vendorCode', label: 'Артикул WB', filterable: true, minWidth: '100px' },
+  { key: 'marketplaceName', label: 'Название на WB', filterable: true, minWidth: '180px' },
+  { key: 'size', label: 'Размер', filterable: true, width: '70px' },
+  { key: 'barcodes', label: 'Штрихкоды', filterable: true, minWidth: '110px' },
   { key: 'linkedIdName', label: 'Связь WMS', minWidth: '220px' },
+  { key: 'isActive', label: 'В продаже', width: '120px' }
 ]
 
 const switchTab = (tab: 'ozon' | 'wb') => { activeTab.value = tab; fetchData() }
 const fetchData = () => run(async () => {
   warehouseCards.value = await productService.getProducts()
-  activeTab.value === 'ozon' ? ozonProducts.value = await productService.getOzonProducts() : wbProducts.value = await productService.getWbProducts()
+  if (activeTab.value === 'ozon') ozonProducts.value = await productService.getOzonProducts()
+  else wbProducts.value = await productService.getWbProducts()
 })
 
 const filteredWarehouseCards = computed(() => {
@@ -153,13 +182,21 @@ const filteredWarehouseCards = computed(() => {
 
 const handleSync = async () => {
   isSyncing.value = true
-  try {
-    const res = await productService.syncMarketplaces()
-    toast.success(res.message); setTimeout(fetchData, 3000)
-  } catch (err: unknown) {
+  try { const res = await productService.syncMarketplaces(); toast.success(res.message); setTimeout(fetchData, 3000) }
+  catch (err: unknown) {
     const errorMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Ошибка'
     toast.error(errorMsg)
-  } finally { isSyncing.value = false }
+  }
+  finally { isSyncing.value = false }
+}
+
+const toggleActive = async (item: OzonProduct | WbProduct) => {
+  try {
+    const newStatus = !item.isActive
+    if (activeTab.value === 'ozon') await productService.toggleOzonActive({ idOzonProduct: (item as OzonProduct).idOzonProduct, isActive: newStatus })
+    else await productService.toggleWbActive({ idChrt: (item as WbProduct).idChrt, isActive: newStatus })
+    item.isActive = newStatus; toast.success(newStatus ? 'Товар в продаже' : 'Товар в стоп-листе')
+  } catch { toast.error('Ошибка изменения статуса') }
 }
 
 const selectedWarehouseCard = computed(() => warehouseCards.value.find(c => c.idName === targetIdName.value))
@@ -172,18 +209,13 @@ const saveLink = async () => {
   if (!selectedMarketplaceProduct.value) return
   isSaving.value = true
   try {
-    if (activeTab.value === 'ozon') {
-      await productService.linkOzonProduct({ idOzonProduct: (selectedMarketplaceProduct.value as OzonProduct).idOzonProduct, newIdName: targetIdName.value })
-    } else {
-      await productService.linkWbProduct({ idChrt: (selectedMarketplaceProduct.value as WbProduct).idChrt, newIdName: targetIdName.value })
-    }
+    if (activeTab.value === 'ozon') await productService.linkOzonProduct({ idOzonProduct: (selectedMarketplaceProduct.value as OzonProduct).idOzonProduct, newIdName: targetIdName.value })
+    else await productService.linkWbProduct({ idChrt: (selectedMarketplaceProduct.value as WbProduct).idChrt, newIdName: targetIdName.value })
     toast.success('Привязка обновлена!'); isLinkModalOpen.value = false; fetchData()
   } catch { toast.error('Ошибка') } finally { isSaving.value = false }
 }
 
-const handleClickOutside = (e: MouseEvent) => {
-  if (targetAutocompleteRef.value && !targetAutocompleteRef.value.contains(e.target as Node)) isTargetDropdownOpen.value = false
-}
+const handleClickOutside = (e: MouseEvent) => { if (targetAutocompleteRef.value && !targetAutocompleteRef.value.contains(e.target as Node)) isTargetDropdownOpen.value = false }
 
 onMounted(() => { fetchData(); document.addEventListener('click', handleClickOutside) })
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))

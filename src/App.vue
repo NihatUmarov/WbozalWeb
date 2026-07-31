@@ -93,37 +93,27 @@ onBeforeUnmount(() => {
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 .app-container.is-standalone {
   height: auto;
   min-height: 100vh;
-  overflow: visible;
 }
 
 /* Контейнер для контента страниц */
 .main-content {
   flex: 1;
   width: 100%;
-  padding: 80px 2.5% 0px 2.5%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 75px 24px 40px 24px;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 .main-content--standalone {
   padding: 0 !important;
-  overflow: visible !important;
-  height: auto !important;
-  display: block !important;
-}
-
-.app-container :deep(.main-header[style*='position: fixed']) + .main-content,
-.app-container :deep(.main-header.is-fixed) + .main-content {
-  margin-top: 85px !important;
+  max-width: none !important;
 }
 
 .update-notification {
@@ -132,8 +122,8 @@ onBeforeUnmount(() => {
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
-  background: #2c3e50;
-  color: #fff;
+  background: var(--color-update-bg);
+  color: var(--color-surface);
   padding: 12px 24px;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -141,7 +131,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 20px;
   font-family: sans-serif;
-  border: 1px solid #42b983;
+  border: 1px solid var(--color-update-accent);
 }
 
 .update-content {
@@ -157,7 +147,7 @@ onBeforeUnmount(() => {
 }
 
 .update-btn {
-  background: #42b983;
+  background: var(--color-update-accent);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -169,8 +159,8 @@ onBeforeUnmount(() => {
 }
 
 .update-btn:hover {
-  background: #35495e;
-  border: 1px solid #42b983;
+  background: var(--color-update-bg);
+  border: 1px solid var(--color-update-accent);
 }
 
 .fade-enter-active,

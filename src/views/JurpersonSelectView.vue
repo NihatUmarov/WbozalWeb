@@ -86,21 +86,21 @@
           </div>
         </Transition>
 
-        <div v-if="jurpersons.length > 0" class="flex flex-col gap-12">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-muted px-4">
+        <div v-if="jurpersons.length > 0" class="flex flex-col gap-15">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-muted px-8">
             Ваши организации
           </h2>
 
-          <div class="flex flex-col gap-12">
+          <div class="flex flex-col gap-15">
             <div
               v-for="jp in jurpersons"
               :key="jp.idJurperson"
-              class="card org-card flex items-center justify-between gap-12"
+              class="card org-card flex items-center justify-between gap-15 py-20 px-20"
               :class="{ 'org-card--active': selectedId === jp.idJurperson }"
               @click="handleSelectJurperson(jp.idJurperson)"
             >
-              <div class="flex flex-col gap-4 text-left truncate">
-                <h4 class="text-sm font-semibold truncate">{{ jp.jurpersonName }}</h4>
+              <div class="flex flex-col gap-6 text-left truncate">
+                <h4 class="text-base font-semibold truncate">{{ jp.jurpersonName }}</h4>
                 <span class="text-xs text-muted font-mono">
                   {{ jp.inn ? `ИНН: ${jp.inn}` : 'ИНН не указан' }}
                 </span>

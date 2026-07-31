@@ -38,7 +38,7 @@
             <AppBadge variant="success" :text="`Добавлено: ${addedItems.length} поз. (${totalAddedQty} шт.)`" />
             <button
               type="button"
-              class="btn btn-secondary btn-xs flex items-center justify-center"
+              class="btn btn-secondary btn-sm flex items-center justify-center"
               :disabled="addedItems.length === 0"
               @click="showAddedItemsModal = true"
             >
@@ -79,26 +79,24 @@
 
             <div
               v-if="modelType === 'ORD'"
-              class="flex items-center border border-dark rounded-6 p-4 bg-secondary"
+              class="flex items-center border border-dark rounded-10 p-6 bg-secondary"
             >
               <button
                 type="button"
-                class="btn btn-xs transition-all px-12"
+                class="btn btn-sm transition-all px-16 h-40"
                 :class="!filterDefect ? 'btn-primary' : 'btn-secondary border-none'"
-                style="height: 28px"
                 @click="setShipmentMode(false)"
               >
                 Стандартная
               </button>
               <button
                 type="button"
-                class="btn btn-xs transition-all px-12"
+                class="btn btn-sm transition-all px-16 h-40"
                 :class="
                   filterDefect
                     ? 'btn-primary bg-error border-error text-white'
                     : 'btn-secondary border-none'
                 "
-                style="height: 28px"
                 @click="setShipmentMode(true)"
               >
                 Отгрузка брака
@@ -125,37 +123,37 @@
             </template>
 
             <template #cell(actions)="{ item }: { item: Product }">
-              <div class="flex items-center justify-end gap-12 w-full">
-                <div v-if="modelType === 'FBO' && item.barcodes?.length > 1" class="flex flex-col items-start gap-4">
-                  <span class="text-[10px] text-muted font-medium">Штрихкод</span>
+              <div class="flex items-center justify-end gap-15 w-full">
+                <div v-if="modelType === 'FBO' && item.barcodes?.length > 1" class="flex flex-col items-start gap-6">
+                  <span class="text-xs text-muted font-medium">Штрихкод</span>
                   <select
-                    class="input text-xs"
-                    style="width: 140px; height: 32px; padding: 0 6px"
+                    class="input text-sm"
+                    style="width: 160px; height: 44px; padding: 0 10px"
                     v-model="inputBarcodes[item.idName]"
                   >
                     <option v-for="bc in item.barcodes" :key="bc" :value="bc">{{ bc }}</option>
                   </select>
                 </div>
 
-                <div v-if="modelType === 'FBO'" class="flex flex-col items-start gap-4">
-                  <span class="text-[10px] text-muted font-medium">Срок годности</span>
+                <div v-if="modelType === 'FBO'" class="flex flex-col items-start gap-6">
+                  <span class="text-xs text-muted font-medium">Срок годности</span>
                   <input
                     type="date"
-                    class="input text-xs"
-                    style="width: 135px; height: 32px; padding: 0 6px"
+                    class="input text-sm"
+                    style="width: 160px; height: 44px; padding: 0 10px"
                     v-model="inputExpirations[item.idName]"
                   />
                 </div>
 
-                <div class="flex flex-col items-start gap-4">
-                  <span v-if="modelType === 'FBO'" class="text-[10px] text-muted font-medium">Кол-во</span>
+                <div class="flex flex-col items-start gap-6">
+                  <span v-if="modelType === 'FBO'" class="text-xs text-muted font-medium">Кол-во</span>
                   <input
                     type="number"
                     min="1"
                     :max="modelType === 'ORD' ? calculateAvailableToShip(item) : undefined"
                     placeholder="Кол-во"
-                    class="input text-center font-semibold"
-                    style="width: 85px; height: 32px; padding: 0 4px"
+                    class="input text-center font-bold"
+                    style="width: 100px; height: 44px; padding: 0 8px"
                     :disabled="modelType === 'ORD' && calculateAvailableToShip(item) <= 0"
                     v-model.number="inputAmounts[item.idName]"
                     @keydown.enter="handleInputCommit(item)"

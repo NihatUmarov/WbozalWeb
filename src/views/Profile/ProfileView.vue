@@ -98,14 +98,13 @@
 
               <div class="pt-16 border-t flex justify-end mt-24">
                 <button
-                  class="btn btn-primary max-w-xs"
+                  class="btn btn-primary w-full"
                   :disabled="isSavingToken || loadingToken"
                   @click="saveMarketplaceSettings"
                 >
                   <span
                     v-if="isSavingToken"
-                    class="table-spinner"
-                    style="width: 16px; height: 16px"
+                    class="btn-spinner"
                   ></span>
                   <span v-else>Сохранить ключи {{ activeTab }}</span>
                 </button>
@@ -226,7 +225,7 @@
           :disabled="isSaving"
           @click="handleSaveProfile"
         >
-          <span v-if="isSaving" class="table-spinner" style="width: 16px; height: 16px"></span>
+          <span v-if="isSaving" class="btn-spinner"></span>
           <span v-else>Сохранить изменения</span>
         </button>
       </div>

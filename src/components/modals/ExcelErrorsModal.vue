@@ -7,21 +7,21 @@
     <div class="import-errors-container max-h-[400px] overflow-y-auto">
       <table class="minimal-table error-table-view w-full">
         <thead>
-          <tr class="text-left border-b text-muted text-xs">
-            <th class="pb-8">Штрихкод</th>
-            <th class="pb-8">Кол-во</th>
-            <th class="pb-8">Причина отклонения</th>
+          <tr class="text-left border-b text-muted text-sm">
+            <th class="pb-12">Штрихкод</th>
+            <th class="pb-12">Кол-во</th>
+            <th class="pb-12">Причина отклонения</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(err, idx) in errors" :key="idx" class="border-b last:border-none">
-            <td class="py-8">
-              <span class="font-mono text-xs bg-secondary px-6 py-2 rounded-6 border border-dark">
+            <td class="py-12">
+              <span class="font-mono text-sm bg-secondary px-10 py-4 rounded-6 border border-dark">
                 {{ err.barcode || 'Пустой' }}
               </span>
             </td>
-            <td class="py-8 tabular-nums font-bold text-xs">{{ err.qty }} шт.</td>
-            <td class="py-8 text-error font-medium text-xs">{{ err.message }}</td>
+            <td class="py-12 tabular-nums font-bold text-sm">{{ err.qty }} шт.</td>
+            <td class="py-12 text-error font-medium text-sm">{{ err.message }}</td>
           </tr>
         </tbody>
       </table>

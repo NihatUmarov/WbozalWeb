@@ -11,7 +11,7 @@
         { label: 'Комплекты', value: 'kits' }
       ]"
       :current-tab="activeTab"
-      @tab-change="activeTab = $event as any"
+      @tab-change="activeTab = ($event as 'items' | 'kits')"
     >
       <template #header-actions>
         <button class="btn btn-primary flex items-center gap-8" @click="isBulkImportOpen = true">

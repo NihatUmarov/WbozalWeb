@@ -7,7 +7,6 @@ import CardsView from '../views/CardsView.vue'
 import JurpersonSelectView from '../views/JurpersonSelectView.vue'
 import MarketplaceLinks from '../views/MarketplaceLinks.vue' // <-- НОВЫЙ ИМПОРТ НАШЕЙ СТРАНИЦЫ ИНТЕГРАЦИЙ
 import { adminService, type UserPermissionsResponse } from '../api/adminService'
-import TariffView from '../views/TariffView.vue' // <-- Импорт
 
 const routes = [
   {
@@ -30,12 +29,6 @@ const routes = [
     name: 'StockDocuments',
     component: StockDocumentsView,
     meta: { requiresAuth: true, requiresJurperson: true },
-  },
-  {
-    path: '/tariff',
-    name: 'Tariff',
-    component: TariffView,
-    meta: { standalone: true },
   },
   {
     path: '/remains',

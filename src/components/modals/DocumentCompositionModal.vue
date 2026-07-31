@@ -30,13 +30,13 @@
                 >
                   {{ item.name }}
                 </span>
-                <div class="flex items-center gap-6">
+                <div class="flex items-center gap-8">
                   <span
-                    class="font-mono text-[10px] font-semibold text-primary bg-secondary border border-dark px-6 py-2 rounded-6"
+                    class="font-mono text-xs font-semibold text-primary bg-secondary border border-dark px-10 py-4 rounded-6"
                   >
                     {{ item.cArt }}
                   </span>
-                  <span v-if="item.isDefect" class="badge badge--error text-[10px] py-0 px-4"
+                  <span v-if="item.isDefect" class="badge badge--error text-xs py-2 px-8"
                     >Брак</span
                   >
                 </div>
@@ -44,7 +44,7 @@
             </td>
             <td class="p-12">
               <span
-                class="font-mono text-xs text-muted bg-secondary border border-dark px-6 py-4 rounded-6 tracking-wide"
+                class="font-mono text-sm text-muted bg-secondary border border-dark px-10 py-6 rounded-6 tracking-wide"
               >
                 {{ item.barcode }}
               </span>
@@ -53,8 +53,8 @@
               <input
                 type="date"
                 v-model="item.expirationDate"
-                class="input text-xs"
-                style="height: 28px; padding: 0 4px; width: 135px"
+                class="input text-sm"
+                style="height: 40px; padding: 0 10px; width: 160px"
                 @change="syncExpirationDates(item)"
               />
             </td>
