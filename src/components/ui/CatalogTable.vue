@@ -37,9 +37,9 @@
   </BaseTable>
 </template>
 
-<script setup lang="ts" generic="T extends Record<string, unknown>">
+<script setup lang="ts" generic="T extends any">
 import { ref, computed } from 'vue'
-import BaseTable, { AppBadge, AppTableCell, type TableColumn } from './BaseTable.vue'
+import BaseTable, { AppBadge, AppTableCell, type TableColumn, type TableExposed } from './BaseTable.vue'
 import { formatQuantity } from '@/utils/formatters'
 
 const props = withDefaults(defineProps<{
@@ -47,7 +47,7 @@ const props = withDefaults(defineProps<{
 }>(), { loading: false, rowHeight: 65, extraColumns: () => [], hideColumns: () => [] })
 
 defineEmits<{ (e: 'rowClick', item: T): void }>()
-const baseTableRef = ref<InstanceType<typeof BaseTable> | null>(null)
+const baseTableRef = ref<TableExposed | null>(null)
 const baseColumns: TableColumn<T>[] = [
   { key: 'primaryImageURL', label: 'Фото', width: '40px' },
   { key: 'cArt', label: 'Артикул', sortable: true, filterable: true, minWidth: '80px' },

@@ -1,6 +1,6 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <template>
-  <div class="data-page flex flex-col gap-16 h-full overflow-hidden pb-16">
+  <div class="data-page flex flex-col gap-12 h-full overflow-hidden pb-16">
     <div v-if="hasHeader" class="card page-header flex items-center justify-between flex-wrap gap-12 shrink-0">
       <h1>{{ title }}</h1>
       <div class="flex items-center gap-12">
@@ -34,9 +34,9 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="T extends Record<string, unknown>">
+<script setup lang="ts" generic="T extends any">
 import { ref, computed, useSlots } from 'vue'
-import BaseTable, { type TableColumn } from './BaseTable.vue'
+import BaseTable, { type TableColumn, type TableExposed } from './BaseTable.vue'
 import BaseDialog from './UnifiedUI.vue'
 
 export interface TabItem { label: string; value: string | number; icon?: string }
@@ -45,10 +45,10 @@ const props = withDefaults(defineProps<{
 }>(), { loading: false, loadingText: 'Загрузка...', emptyText: 'Нет данных', emptyIcon: '📂', hasHeader: true, showExcelExport: true })
 
 const emit = defineEmits<{ (e: 'tabChange', v: string | number): void; (e: 'rowClick', item: T): void }>()
-const tableRef = ref<InstanceType<typeof BaseTable> | null>(null), externalTableRef = ref<InstanceType<typeof BaseTable> | null>(null)
+const tableRef = ref<TableExposed | null>(null), externalTableRef = ref<TableExposed | null>(null)
 const isRowModalOpen = ref(false), selectedRowItem = ref<T | null>(null), slots = useSlots()
 
-const registerExternalTable = (i: InstanceType<typeof BaseTable>) => externalTableRef.value = i
+const registerExternalTable = (i: TableExposed) => externalTableRef.value = i
 const handleExportClick = () => (externalTableRef.value || tableRef.value)?.triggerExcelExport(props.title)
 const onRowClick = (item: T) => { emit('rowClick', item); if (slots['row-details']) { selectedRowItem.value = item; isRowModalOpen.value = true } }
 const closeRowModal = () => { isRowModalOpen.value = false; selectedRowItem.value = null }

@@ -2,7 +2,7 @@
   <MainLayout>
     <BaseDataPage
       title="Интеграция с маркетплейсами"
-      :items="activeTab === 'ozon' ? (ozonProducts as (OzonProduct | WbProduct)[]) : (wbProducts as (OzonProduct | WbProduct)[])"
+      :items="activeTab === 'ozon' ? ozonProducts : wbProducts"
       :columns="activeTab === 'ozon' ? (ozonColumns as TableColumn<OzonProduct | WbProduct>[]) : (wbColumns as TableColumn<OzonProduct | WbProduct>[])"
       :loading="loading"
       :tabs="[
@@ -34,14 +34,14 @@
           :row-height="80"
           @row-click="openLinkModal($event)"
         >
-          <template #cell(photo)="{ item }: { item: OzonProduct | WbProduct }">
+          <template #cell(photo)="{ item }">
             <div class="w-[40px] h-[60px] flex items-center justify-center bg-secondary rounded-6 overflow-hidden mx-auto">
-              <img v-if="item.linkedImage" :src="item.linkedImage" alt="P" class="object-contain w-full h-full" />
+              <img v-if="item.linkedImage" :src="String(item.linkedImage)" alt="P" class="object-contain w-full h-full" />
               <span v-else class="text-[10px] text-muted">No</span>
             </div>
           </template>
 
-          <template #cell(linkedIdName)="{ item }: { item: OzonProduct | WbProduct }">
+          <template #cell(linkedIdName)="{ item }">
             <div class="flex flex-col min-w-0 gap-2" v-if="item.linkedIdName">
               <AppTableCell :value="item.linkedName" bold size="xs" />
               <div class="flex items-center gap-6">
@@ -52,17 +52,17 @@
             <AppBadge v-else variant="error" text="Не привязан" />
           </template>
 
-          <template #cell(barcodes)="{ item }: { item: OzonProduct | WbProduct }">
+          <template #cell(barcodes)="{ item }">
             <div class="flex flex-col gap-2 min-w-0" v-if="item.barcodes?.length">
               <AppTableCell v-for="bc in item.barcodes" :key="bc" :value="bc" mono size="xs" color="muted" />
             </div>
             <AppTableCell v-else value="—" color="muted" align="center" />
           </template>
 
-          <template #cell(isActive)="{ item }: { item: OzonProduct | WbProduct }">
+          <template #cell(isActive)="{ item }">
             <div class="flex justify-center" @click.stop>
               <label class="toggle">
-                <input type="checkbox" :checked="item.isActive" @change="toggleActive(item)" />
+                <input type="checkbox" :checked="!!item.isActive" @change="toggleActive(item)" />
                 <div class="toggle-track" />
                 <span>{{ item.isActive ? 'В продаже' : 'Стоп' }}</span>
               </label>
@@ -125,7 +125,7 @@
       </template>
     </BaseDialog>
 
-    <BaseDialog v-model:is-open="isImportModalOpen" variant="modal" max-width="3xl">
+    <BaseDialog v-model:is-open="isImportModalOpen" variant="modal" max-width="2xl">
       <template #header><h2 class="text-xl font-bold m-0">Массовое обновление статусов</h2></template>
       <StopListBulkImportModal v-if="isImportModalOpen" :catalog-stop-list="activeTab === 'ozon' ? (ozonProducts as MarketplaceProduct[]) : (wbProducts as MarketplaceProduct[])" :marketplace="activeTab" @close="isImportModalOpen = false" @updated="fetchData" />
     </BaseDialog>
@@ -138,7 +138,7 @@ import BaseDataPage from '@/components/ui/BaseDataPage.vue'
 import BaseTable, { AppBadge, AppTableCell, type TableColumn } from '@/components/ui/BaseTable.vue'
 import BaseDialog from '@/components/ui/UnifiedUI.vue'
 import StopListBulkImportModal from '@/components/modals/StopListBulkImportModal.vue'
-import { productService, type OzonProduct, type WbProduct } from '@/api/productService'
+import { productService, type OzonProduct, type WbProduct, type MarketplaceProduct } from '@/api/productService'
 import type { Product } from '@/api/types'
 import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'

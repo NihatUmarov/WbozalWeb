@@ -41,21 +41,23 @@ export interface OzonProduct extends MarketplaceProduct { idOzonProduct: number;
 export interface WbProduct extends MarketplaceProduct { idChrt: number; idNm: number; vendorCode: string }
 
 // --- Внутренняя нормализация для гарантированной чистоты данных ---
-const normalize = <T extends Record<string, unknown>>(p: unknown): T => {
+const normalize = <T extends object>(p: unknown): T => {
   const raw = p as Record<string, unknown>
+  const b = (raw.barcodes || raw.Barcodes || raw.RawBarcodes || raw.barcode || []) as string | string[]
   return {
     ...raw,
-    barcodes: Array.isArray(raw.barcodes) ? raw.barcodes : (raw.RawBarcodes ? String(raw.RawBarcodes).split(',') : (raw.barcode ? [String(raw.barcode)] : [])),
-    cName: (raw.cName as string) || (raw.marketplaceName as string) || 'Без названия',
-    cArt: (raw.cArt as string) || (raw.marking as string) || (raw.vendorCode as string) || '—',
-    size: (raw.size as string) || '—',
-    irQuant: (raw.irQuant as number) || 0,
-    iBronTask: (raw.iBronTask as number) || 0,
-    defectQuant: (raw.defectQuant as number) || 0,
-    isDefect: !!raw.isDefect,
-    isKit: !!raw.isKit,
-    isActive: raw.isActive !== undefined ? !!raw.isActive : (raw.IsActive !== undefined ? !!raw.IsActive : true),
-    linkedImage: (raw.linkedImage as string) || (raw.PrimaryImageURL as string) || (raw.primaryImage as string) || null
+    idName: (raw.idName || raw.IdName) as number,
+    primaryImageURL: (raw.primaryImageURL || raw.PrimaryImageURL || raw.primaryImage || raw.linkedImage || null) as string | null,
+    cName: (raw.cName || raw.marketplaceName || 'Без названия') as string,
+    cArt: (raw.cArt || raw.marking || raw.vendorCode || '—') as string,
+    size: (raw.size || raw.Size || '—') as string,
+    barcodes: Array.isArray(b) ? b : (typeof b === 'string' ? b.split(',') : [String(b)]),
+    irQuant: (raw.irQuant || raw.IrQuant || 0) as number,
+    iBronTask: (raw.iBronTask || raw.IBronTask || 0) as number,
+    defectQuant: (raw.defectQuant || raw.DefectQuant || 0) as number,
+    isDefect: !!(raw.isDefect ?? raw.IsDefect ?? false),
+    isKit: !!(raw.isKit ?? raw.IsKit ?? false),
+    isActive: !!(raw.isActive ?? raw.IsActive ?? true),
   } as unknown as T
 }
 

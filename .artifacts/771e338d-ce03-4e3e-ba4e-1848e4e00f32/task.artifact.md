@@ -1,0 +1,10 @@
+- [x] Clean up `main.css` (centralize HEX colors, remove redundancies)
+- [x] Refactor `UnifiedUI.vue` (simplify structure, use computed classes, arrow functions)
+- [x] Refactor `BaseTable.vue` (functional `AppBadge`/`AppTableCell`, optimize virtual scroll, сжатие логики)
+- [x] Refactor `CatalogTable.vue` (remove wrappers, `getV`, clean slots)
+- [x] Refactor `BaseDataPage.vue` (simplify header/tabs, clean logic)
+- [x] Refactor `BaseHeader.vue` (optimize dropdown/menu structure)
+- [x] Refactor `InvoiceView.vue` (clean up columns logic, use tear-offs)
+- [x] Refactor `InvoiceDetailsModal.vue` (computed columns, type safety, clean code)
+- [x] Fix layouts (paddings/margins) and filter debounce bug
+- [x] Final verification and walkthrough

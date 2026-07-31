@@ -108,9 +108,14 @@ export const AppTableCell = defineComponent({
 export interface TableColumn<T = Record<string, unknown>> {
   key: keyof T | string; label: string; sortable?: boolean; filterable?: boolean; width?: string; minWidth?: string; exportFormatter?: (v: unknown, item: T) => string | number
 }
+
+export interface TableExposed {
+  triggerExcelExport: (n: string) => void
+  setScrollTop: (v: number) => void
+}
 </script>
 
-<script setup lang="ts" generic="T extends Record<string, unknown>">
+<script setup lang="ts" generic="T extends Record<string, any>">
 import { ref, computed, watch, onMounted, onUnmounted, reactive, nextTick } from 'vue'
 import * as XLSX from 'xlsx'
 import { useViewSettings } from '@/composables/useViewSettings'
@@ -200,7 +205,10 @@ const triggerExcelExport = (n: string) => { exportName = n; if (Object.values(fi
 const generateExcel = (f: boolean) => {
   const rows = (f ? filteredAndSortedItems.value : props.items).map(item => {
     const r: Record<string, string | number> = {}
-    props.columns.forEach(c => r[c.label] = c.exportFormatter ? c.exportFormatter(getVal(item, c.key), item) : String(getVal(item, c.key) ?? '—'))
+    props.columns.forEach(c => {
+      const val = getVal(item, c.key)
+      r[c.label] = c.exportFormatter ? c.exportFormatter(val, item) : String(val ?? '—')
+    })
     return r
   })
   const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new()

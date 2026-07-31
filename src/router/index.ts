@@ -6,6 +6,7 @@ import RemainsList from '../views/RemainsList.vue'
 import CardsView from '../views/CardsView.vue'
 import JurpersonSelectView from '../views/JurpersonSelectView.vue'
 import MarketplaceLinks from '../views/MarketplaceLinks.vue' // <-- НОВЫЙ ИМПОРТ НАШЕЙ СТРАНИЦЫ ИНТЕГРАЦИЙ
+import TariffView from '../views/TariffView.vue'
 import { adminService, type UserPermissionsResponse } from '../api/adminService'
 
 const routes = [
@@ -54,6 +55,12 @@ const routes = [
     name: 'SelectJurperson',
     component: JurpersonSelectView,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/tariff',
+    name: 'Tariff',
+    component: TariffView,
+    meta: { standalone: true },
   },
 ]
 
