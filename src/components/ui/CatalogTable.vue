@@ -37,7 +37,7 @@
   </BaseTable>
 </template>
 
-<script setup lang="ts" generic="T extends any">
+<script setup lang="ts" generic="T extends Record<string, any>">
 import { ref, computed } from 'vue'
 import BaseTable, { AppBadge, AppTableCell, type TableColumn, type TableExposed } from './BaseTable.vue'
 import { formatQuantity } from '@/utils/formatters'

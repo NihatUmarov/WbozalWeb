@@ -116,7 +116,7 @@ export interface TableExposed {
 </script>
 
 <script setup lang="ts" generic="T extends Record<string, any>">
-import { ref, computed, watch, onMounted, onUnmounted, reactive, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, reactive, nextTick, shallowRef } from 'vue'
 import * as XLSX from 'xlsx'
 import { useViewSettings } from '@/composables/useViewSettings'
 
@@ -165,7 +165,7 @@ const handleSort = (k: string) => {
 }
 
 const showSettings = ref(false), dragOverIndex = ref<number | null>(null), draggedIndex = ref<number | null>(null)
-const columnOrder = ref<TableColumn<T>[]>([]), columnWidths = reactive<Record<string, string>>({})
+const columnOrder = shallowRef<TableColumn<T>[]>([]), columnWidths = reactive<Record<string, string>>({})
 const hasConfigurableColumns = computed(() => props.columns.some(c => ['primaryImageURL', 'cArt', 'cArtWB', 'size'].includes(String(c.key))))
 
 watch(() => props.columns, c => columnOrder.value = [...c], { immediate: true })

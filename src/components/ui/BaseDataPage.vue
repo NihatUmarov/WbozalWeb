@@ -34,7 +34,7 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="T extends any">
+<script setup lang="ts" generic="T extends Record<string, any>">
 import { ref, computed, useSlots } from 'vue'
 import BaseTable, { type TableColumn, type TableExposed } from './BaseTable.vue'
 import BaseDialog from './UnifiedUI.vue'
@@ -48,7 +48,7 @@ const emit = defineEmits<{ (e: 'tabChange', v: string | number): void; (e: 'rowC
 const tableRef = ref<TableExposed | null>(null), externalTableRef = ref<TableExposed | null>(null)
 const isRowModalOpen = ref(false), selectedRowItem = ref<T | null>(null), slots = useSlots()
 
-const registerExternalTable = (i: TableExposed) => externalTableRef.value = i
+const registerExternalTable = (i: unknown) => { externalTableRef.value = i as TableExposed }
 const handleExportClick = () => (externalTableRef.value || tableRef.value)?.triggerExcelExport(props.title)
 const onRowClick = (item: T) => { emit('rowClick', item); if (slots['row-details']) { selectedRowItem.value = item; isRowModalOpen.value = true } }
 const closeRowModal = () => { isRowModalOpen.value = false; selectedRowItem.value = null }

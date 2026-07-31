@@ -1,0 +1,4 @@
+- [x] Update generic constraints in `BaseDataPage.vue` and `CatalogTable.vue`
+- [x] Fix `registerExternalTable` return type in `BaseDataPage.vue`
+- [x] Resolve `UnwrapRef` and type mismatch errors in `BaseTable.vue`
+- [x] Verify build via `bash deploy.sh`
