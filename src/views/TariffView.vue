@@ -361,13 +361,6 @@ const combinedServices = [
 </script>
 
 <style scoped>
-:deep(.main-content) {
-  width: 100% !important;
-  max-width: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
 .tariff-shell {
   --ink: #172033;
   --muted: #677289;

@@ -1,8 +1,8 @@
 <template>
-  <div id="app" class="app-container">
+  <div id="app" :class="['app-container', { 'is-standalone': $route.meta.standalone }]">
     <BaseHeader v-if="$route.meta.requiresJurperson" />
 
-    <main class="main-content">
+    <main :class="['main-content', { 'main-content--standalone': $route.meta.standalone }]">
       <router-view />
     </main>
 
@@ -97,6 +97,12 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+.app-container.is-standalone {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
 /* Контейнер для контента страниц */
 .main-content {
   flex: 1;
@@ -106,6 +112,13 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.main-content--standalone {
+  padding: 0 !important;
+  overflow: visible !important;
+  height: auto !important;
+  display: block !important;
 }
 
 .app-container :deep(.main-header[style*='position: fixed']) + .main-content,

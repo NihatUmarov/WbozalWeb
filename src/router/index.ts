@@ -35,6 +35,7 @@ const routes = [
     path: '/tariff',
     name: 'Tariff',
     component: TariffView,
+    meta: { standalone: true },
   },
   {
     path: '/remains',
