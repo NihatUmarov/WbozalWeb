@@ -104,15 +104,15 @@
         <div v-else class="flex flex-col gap-8">
           <div class="autocomplete-wrapper" ref="targetAutocompleteRef">
             <input type="text" v-model="targetSearchQuery" class="input w-full" placeholder="Поиск для привязки..." @focus="isTargetDropdownOpen = true" />
-            <Transition name="dropdown-fade">
-              <div v-if="isTargetDropdownOpen && filteredWarehouseCards.length" class="autocomplete-dropdown">
-                <div v-for="card in filteredWarehouseCards" :key="card.idName" class="autocomplete-item" @click="selectTarget(card)">
-                  <AppTableCell :value="`[${card.cArt || '—'}]`" mono bold color="brand" />
-                  <span class="flex-1 truncate">{{ card.cName || 'Без названия' }}</span>
-                  <AppBadge v-if="card.isKit" variant="info" text="Комплект" />
-                </div>
+
+            <!-- Обычный поток без absolute, чтоб растягивать модалку по вертикали -->
+            <div v-if="isTargetDropdownOpen && filteredWarehouseCards.length" class="autocomplete-list">
+              <div v-for="card in filteredWarehouseCards" :key="card.idName" class="autocomplete-item" @click="selectTarget(card)">
+                <AppTableCell :value="`[${card.cArt || '—'}]`" mono bold color="brand" />
+                <span class="flex-1 truncate">{{ card.cName || 'Без названия' }}</span>
+                <AppBadge v-if="card.isKit" variant="info" text="Комплект" />
               </div>
-            </Transition>
+            </div>
           </div>
         </div>
       </div>
@@ -222,8 +222,42 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>
 
 <style scoped>
-.autocomplete-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; }
-.autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--color-surface); border: 1px solid var(--color-border-dark); border-radius: 8px; max-height: 180px; overflow-y: auto; z-index: 50; box-shadow: var(--shadow-sm); margin-top: 4px; }
-.autocomplete-item { padding: 10px 16px; cursor: pointer; display: flex; gap: 12px; font-size: 13px; align-items: center; transition: background 0.2s; color: var(--color-text-primary); }
-.autocomplete-item:hover { background: var(--color-background-secondary); }
+.autocomplete-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.autocomplete-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-8);
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  box-shadow: var(--shadow-sm);
+}
+
+.autocomplete-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background 0.15s ease;
+  color: var(--color-text-primary);
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover {
+  background: var(--color-background-secondary);
+}
 </style>

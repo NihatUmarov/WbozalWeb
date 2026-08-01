@@ -21,7 +21,18 @@
 
     <div class="flex-1 min-h-0 w-full overflow-hidden">
       <slot :items="items" :columns="columns" :loading="loading" :register-table="registerExternalTable">
-        <BaseTable ref="tableRef" :items="items" :columns="columns" :loading="loading" :loading-text="loadingText" :empty-text="emptyText" :empty-icon="emptyIcon" max-height="100%" :row-class="rowClass" @rowClick="onRowClick">
+        <BaseTable
+          ref="tableRef"
+          :items="items"
+          :columns="columns"
+          :loading="loading"
+          :loading-text="loadingText"
+          :empty-text="emptyText"
+          :empty-icon="emptyIcon"
+          :max-height="tableMaxHeight"
+          :row-class="rowClass"
+          @rowClick="onRowClick"
+        >
           <template v-for="(_, n) in $slots" :key="n" #[n]="d"><slot :name="n" v-bind="d || {}" /></template>
         </BaseTable>
       </slot>
@@ -42,7 +53,15 @@ import BaseDialog from './UnifiedUI.vue'
 export interface TabItem { label: string; value: string | number; icon?: string }
 const props = withDefaults(defineProps<{
   title: string; items: T[]; columns: TableColumn<T>[]; loading?: boolean; tabs?: TabItem[]; currentTab?: string | number; loadingText?: string; emptyText?: string; emptyIcon?: string; tableMaxHeight?: string; rowClass?: (item: T) => string; hasHeader?: boolean; showExcelExport?: boolean
-}>(), { loading: false, loadingText: 'Загрузка...', emptyText: 'Нет данных', emptyIcon: '📂', hasHeader: true, showExcelExport: true })
+}>(), {
+  loading: false,
+  loadingText: 'Загрузка...',
+  emptyText: 'Нет данных',
+  emptyIcon: '📂',
+  hasHeader: true,
+  showExcelExport: true,
+  tableMaxHeight: 'calc(100vh - 220px)' // 👈 Рассчитанный лимит высоты под viewport экрана
+})
 
 const emit = defineEmits<{ (e: 'tabChange', v: string | number): void; (e: 'rowClick', item: T): void }>()
 const tableRef = ref<TableExposed | null>(null), externalTableRef = ref<TableExposed | null>(null)

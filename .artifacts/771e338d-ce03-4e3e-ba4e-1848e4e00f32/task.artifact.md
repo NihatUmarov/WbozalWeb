@@ -7,4 +7,6 @@
 - [x] Refactor `InvoiceView.vue` (clean up columns logic, use tear-offs)
 - [x] Refactor `InvoiceDetailsModal.vue` (computed columns, type safety, clean code)
 - [x] Fix layouts (paddings/margins) and filter debounce bug
+- [x] Backend: Update `ProductRepository.cs` and `CardsController.cs` for direct `isActive` management
+- [x] FBSRemains: Update `MarketplaceStockService.cs` for direct `isActive` check
 - [x] Final verification and walkthrough
