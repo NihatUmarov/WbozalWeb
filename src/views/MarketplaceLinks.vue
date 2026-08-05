@@ -1,6 +1,7 @@
 <template>
   <MainLayout>
     <BaseDataPage
+      ref="dataPageRef"
       title="Интеграция с маркетплейсами"
       :items="activeTab === 'ozon' ? ozonProducts : wbProducts"
       :columns="activeTab === 'ozon' ? (ozonColumns as TableColumn<OzonProduct | WbProduct>[]) : (wbColumns as TableColumn<OzonProduct | WbProduct>[])"
@@ -53,7 +54,7 @@
           </template>
 
           <template #cell(barcodes)="{ item }">
-            <div class="flex flex-col gap-2 min-w-0" v-if="item.barcodes?.length">
+            <div class="barcodes-wrap-list min-w-0" v-if="item.barcodes?.length">
               <AppTableCell v-for="bc in item.barcodes" :key="bc" :value="bc" mono size="xs" color="muted" />
             </div>
             <AppTableCell v-else value="—" color="muted" align="center" />
@@ -134,7 +135,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import BaseDataPage from '@/components/ui/BaseDataPage.vue'
+import BaseDataPage, { type DataPageExposed } from '@/components/ui/BaseDataPage.vue'
 import BaseTable, { AppBadge, AppTableCell, type TableColumn } from '@/components/ui/BaseTable.vue'
 import BaseDialog from '@/components/ui/UnifiedUI.vue'
 import StopListBulkImportModal from '@/components/modals/StopListBulkImportModal.vue'
@@ -147,6 +148,7 @@ const toast = useToast(), { loading, run } = useAsync(), isSaving = ref(false), 
 const activeTab = ref<'ozon' | 'wb'>('wb'), ozonProducts = ref<OzonProduct[]>([]), wbProducts = ref<WbProduct[]>([]), warehouseCards = ref<Product[]>([])
 const isLinkModalOpen = ref(false), selectedMarketplaceProduct = ref<OzonProduct | WbProduct | null>(null), targetIdName = ref<number | null>(null)
 const targetSearchQuery = ref(''), isTargetDropdownOpen = ref(false), targetAutocompleteRef = ref<HTMLElement | null>(null), isSyncing = ref(false)
+const dataPageRef = ref<DataPageExposed | null>(null)
 
 const ozonColumns: TableColumn<OzonProduct>[] = [
   { key: 'photo', label: 'Фото', width: '60px' },
@@ -168,7 +170,11 @@ const wbColumns: TableColumn<WbProduct>[] = [
   { key: 'isActive', label: 'В продаже', width: '120px' }
 ]
 
-const switchTab = (tab: 'ozon' | 'wb') => { activeTab.value = tab; fetchData() }
+const switchTab = (tab: 'ozon' | 'wb') => {
+  activeTab.value = tab
+  dataPageRef.value?.clearFilters()
+  fetchData()
+}
 const fetchData = () => run(async () => {
   warehouseCards.value = await productService.getProducts()
   if (activeTab.value === 'ozon') ozonProducts.value = await productService.getOzonProducts()

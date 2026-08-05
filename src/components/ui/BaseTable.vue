@@ -46,9 +46,9 @@
     </div>
 
     <div class="base-table-scroll-container" ref="scrollContainer" @scroll.passive="onScroll">
-      <div :style="{ height: `${totalHeight}px`, width: '1px', pointerEvents: 'none' }" />
-      <div class="base-table-body-window" :style="{ transform: `translate3d(0, ${offsetTop}px, 0)` }">
-        <table class="minimal-table w-full" style="table-layout: fixed">
+      <div v-if="isVirtual" :style="{ height: `${totalHeight}px`, width: '1px', pointerEvents: 'none' }" />
+      <div class="base-table-body-window" :class="{ 'base-table-body-window--virtual': isVirtual }" :style="isVirtual ? { transform: `translate3d(0, ${offsetTop}px, 0)` } : {}">
+        <table class="minimal-table w-full" :class="{ 'minimal-table--fluid': !isVirtual }" :style="{ tableLayout: 'fixed' }">
           <colgroup>
             <col v-for="c in dynamicColumns" :key="'b-'+String(c.key)" :style="{ width: getColWidth(c) }" />
           </colgroup>
@@ -61,9 +61,21 @@
                 </div>
               </td>
             </tr>
-            <tr v-else v-for="(item, idx) in visibleItems" :key="getItemId(item, idx)" :class="[rowClass?.(item), 'row-clickable']" :style="{ height: `${rowHeight}px` }" @click="handleRowClick(item, $event)">
-              <td v-for="col in dynamicColumns" :key="String(col.key)" class="truncate" :style="{ height: `${rowHeight}px` }">
-                <slot :name="`cell(${String(col.key)})`" :item="item" :index="idx + startIndex" :value="getVal(item, col.key)">
+            <tr
+              v-else
+              v-for="(item, idx) in visibleItems"
+              :key="getItemId(item, idx)"
+              :class="[rowClass?.(item), 'row-clickable']"
+              :style="isVirtual ? { height: `${rowHeight}px` } : { minHeight: `${rowHeight}px` }"
+              @click="handleRowClick(item, $event)"
+            >
+              <td
+                v-for="col in dynamicColumns"
+                :key="String(col.key)"
+                :class="{ 'truncate': isVirtual }"
+                :style="isVirtual ? { height: `${rowHeight}px` } : { minHeight: `${rowHeight}px` }"
+              >
+                <slot :name="`cell(${String(col.key)})`" :item="item" :index="idx + (isVirtual ? startIndex : 0)" :value="getVal(item, col.key)">
                   {{ getVal(item, col.key) ?? '—' }}
                 </slot>
               </td>
@@ -112,32 +124,40 @@ export interface TableColumn<T = Record<string, unknown>> {
 export interface TableExposed {
   triggerExcelExport: (n: string) => void
   setScrollTop: (v: number) => void
+  clearFilters: () => void
 }
 </script>
 
-<script setup lang="ts" generic="T extends Record<string, any>">
+<script setup lang="ts" generic="T extends Record<string, unknown>">
 import { ref, computed, watch, onMounted, onUnmounted, reactive, nextTick, shallowRef } from 'vue'
 import * as XLSX from 'xlsx'
 import { useViewSettings } from '@/composables/useViewSettings'
 
 const props = withDefaults(defineProps<{
-  items: T[]; columns: TableColumn<T>[]; loading?: boolean; loadingText?: string; emptyText?: string; emptyIcon?: string; maxHeight?: string; rowClass?: (item: T) => string; rowHeight?: number
-}>(), { loading: false, loadingText: 'Загрузка...', emptyText: 'Нет данных', emptyIcon: '📂', maxHeight: 'calc(100vh - 250px)', rowHeight: 65 })
+  items: T[]; columns: TableColumn<T>[]; loading?: boolean; loadingText?: string; emptyText?: string; emptyIcon?: string; maxHeight?: string; rowClass?: (item: T) => string; rowHeight?: number; virtualThreshold?: number
+}>(), { loading: false, loadingText: 'Загрузка...', emptyText: 'Нет данных', emptyIcon: '📂', maxHeight: 'calc(100vh - 250px)', rowHeight: 65, virtualThreshold: 40 })
 
 const emit = defineEmits<{ (e: 'rowClick', item: T): void }>()
 const { showImage, showArt, showWbArt, showSize } = useViewSettings()
 
 const scrollContainer = ref<HTMLElement | null>(null), scrollTop = ref(0), startIndex = ref(0), visibleCount = ref(30)
 const onScroll = (e: Event) => {
+  if (!isVirtual.value) return
   const t = e.target as HTMLElement
   scrollTop.value = t.scrollTop; startIndex.value = Math.max(0, Math.floor(t.scrollTop / props.rowHeight) - 5)
 }
 
-const updateMetrics = () => { if (scrollContainer.value) visibleCount.value = Math.ceil(scrollContainer.value.clientHeight / props.rowHeight) + 15 }
+const updateMetrics = () => {
+  if (scrollContainer.value) {
+    visibleCount.value = Math.ceil(scrollContainer.value.clientHeight / props.rowHeight) + 15
+  }
+}
 const getVal = (item: T, key: keyof T | string): unknown => (item as Record<string, unknown>)[key as string]
 const getColWidth = (c: TableColumn<T>) => columnWidths[String(c.key)] || c.width || c.minWidth || '150px'
 
 const filters = reactive<Record<string, string>>({}), sortKey = ref<string | null>(null), sortOrder = ref<'asc' | 'desc'>('asc')
+const clearFilters = () => { Object.keys(filters).forEach(k => delete filters[k]) }
+
 const filteredAndSortedItems = computed(() => {
   if (!props.items) return []
   let res = [...props.items]
@@ -155,8 +175,10 @@ const filteredAndSortedItems = computed(() => {
   return res
 })
 
-const visibleItems = computed(() => filteredAndSortedItems.value.slice(startIndex.value, startIndex.value + visibleCount.value))
-const offsetTop = computed(() => startIndex.value * props.rowHeight), totalHeight = computed(() => filteredAndSortedItems.value.length * props.rowHeight)
+const isVirtual = computed(() => filteredAndSortedItems.value.length > props.virtualThreshold)
+const visibleItems = computed(() => isVirtual.value ? filteredAndSortedItems.value.slice(startIndex.value, startIndex.value + visibleCount.value) : filteredAndSortedItems.value)
+const offsetTop = computed(() => isVirtual.value ? startIndex.value * props.rowHeight : 0)
+const totalHeight = computed(() => isVirtual.value ? filteredAndSortedItems.value.length * props.rowHeight : 0)
 watch(() => filteredAndSortedItems.value.length, () => { if (scrollContainer.value) scrollContainer.value.scrollTop = 0; startIndex.value = 0 })
 
 const handleSort = (k: string) => {
@@ -236,20 +258,22 @@ const vClickOutside: Directive<ClickOutsideHTMLElement, (e: MouseEvent) => void>
 }
 
 onMounted(() => { nextTick(updateMetrics); window.addEventListener('resize', updateMetrics) }); onUnmounted(() => window.removeEventListener('resize', updateMetrics))
-defineExpose({ triggerExcelExport, setScrollTop: (v: number) => { if (scrollContainer.value) scrollContainer.value.scrollTop = v } })
+defineExpose({ triggerExcelExport, clearFilters, setScrollTop: (v: number) => { if (scrollContainer.value) scrollContainer.value.scrollTop = v } })
 </script>
 
 <style scoped>
 .base-table-root { display: flex; flex-direction: column; width: 100%; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-12); overflow: hidden; position: relative; }
 .base-table-header { flex-shrink: 0; z-index: 50; background: var(--color-background-secondary); border-bottom: 1px solid var(--color-border-dark); }
 .base-table-scroll-container { flex: 1; overflow: auto; position: relative; scrollbar-width: thin; }
-.base-table-body-window { position: absolute; top: 0; left: 0; right: 0; will-change: transform; }
+.base-table-body-window { width: 100%; will-change: transform; }
+.base-table-body-window--virtual { position: absolute; top: 0; left: 0; right: 0; }
 .table-settings-corner { position: absolute; top: 8px; right: 8px; z-index: 60; }
 .settings-icon-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: var(--color-background-secondary); border: 1px solid var(--color-border-dark); border-radius: 4px; cursor: pointer; opacity: 0.6; transition: 0.2s; }
 .settings-icon-btn:hover, .settings-icon-btn--active { opacity: 1; background: var(--color-surface); border-color: var(--color-primary); }
 .settings-popover { position: absolute; top: 100%; right: 0; width: 160px; padding: 12px; z-index: 100; margin-top: 6px; }
 .toggle-row { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 0; font-size: 12px; }
 .minimal-table th:last-child { padding-right: 40px !important; }
+.minimal-table--fluid td { white-space: normal; overflow: visible; text-overflow: clip; }
 .sort-arrows span { opacity: 0.2; font-size: 10px; }
 .sort-arrows span.active { opacity: 1; color: var(--color-primary); }
 </style>

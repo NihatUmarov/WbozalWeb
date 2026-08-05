@@ -65,8 +65,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, shallowRef } from 'vue'
-import BaseDataPage from '@/components/ui/BaseDataPage.vue'
-import SharedProductTable from '@/components/ui/CatalogTable.vue'
+import BaseDataPage, { type DataPageExposed } from '@/components/ui/BaseDataPage.vue'
+import SharedProductTable from '@/components/ui/ProductTable.vue'
 import NamesLabelEditor from '@/components/ui/NamesLabelEditor.vue'
 import BaseDialog from '@/components/ui/UnifiedUI.vue'
 import ProductDetailModal from '@/components/ui/ProductDetailModal.vue'
@@ -81,7 +81,7 @@ const cards = shallowRef<Product[]>([])
 const isEditorOpen = ref(false)
 const selectedIdName = ref(0)
 const isBulkImportOpen = ref(false)
-const dataPageRef = ref<{ openRowDetails: (item: Product) => void } | null>(null)
+const dataPageRef = ref<DataPageExposed<Product> | null>(null)
 
 const { loading, run } = useAsync()
 

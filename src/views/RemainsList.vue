@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { ref, onMounted, shallowRef } from 'vue'
 import BaseDataPage from '@/components/ui/BaseDataPage.vue'
-import SharedProductTable from '@/components/ui/CatalogTable.vue'
+import SharedProductTable from '@/components/ui/ProductTable.vue'
 import { AppBadge, type TableColumn } from '@/components/ui/BaseTable.vue'
 import { productService } from '@/api/productService'
 import { useAsync } from '@/composables/useAsync'

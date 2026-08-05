@@ -1,0 +1,15 @@
+- [x] Cleanup dead code and boilerplate
+    - [x] Delete `src/components/icons/IconEcosystem.vue`
+- [x] Reorganize Modals
+    - [x] Move `src/views/Profile/UserManagementModal.vue` to `src/components/modals/UserManagementModal.vue`
+- [x] Refactor UI Components
+    - [x] Refactor `src/components/ui/UnifiedUI.vue` (clean logic, keep combined)
+    - [x] Refactor `src/components/ui/BaseDataPage.vue` (simplify to layout wrapper)
+- [x] Standardize Naming
+    - [x] Rename `src/components/ui/CatalogTable.vue` to `src/components/ui/ProductTable.vue`
+- [x] Update Usages and Imports
+    - [x] Update all files to use new component names and paths
+    - [x] Clean up redundant imports in views
+- [ ] Verification
+    - [ ] Run `npm run type-check`
+    - [ ] Manual verification of main screens

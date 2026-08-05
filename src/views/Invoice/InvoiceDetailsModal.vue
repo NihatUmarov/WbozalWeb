@@ -46,7 +46,7 @@ import { useToast } from '@/composables/useToast'
 import { formatDate, formatQuantity } from '@/utils/formatters'
 import { getStatusVariant } from '@/utils/ui-helpers'
 import InvoiceHeaderFields from '@/components/ui/InvoiceHeaderForm.vue'
-import SharedProductTable from '@/components/ui/CatalogTable.vue'
+import SharedProductTable from '@/components/ui/ProductTable.vue'
 import { AppBadge, AppTableCell, type TableColumn } from '@/components/ui/BaseTable.vue'
 import BaseModal from '@/components/ui/UnifiedUI.vue'
 

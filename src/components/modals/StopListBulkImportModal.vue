@@ -57,7 +57,7 @@ import { productService, type MarketplaceProduct } from '@/api/productService'
 import { useToast } from '@/composables/useToast'
 import { useExcelReader } from '@/composables/useExcelReader'
 import ExcelImportLayout from '@/components/ui/ExcelImportLayout.vue'
-import SharedProductTable from '@/components/ui/CatalogTable.vue'
+import SharedProductTable from '@/components/ui/ProductTable.vue'
 import { AppBadge, type TableColumn } from '@/components/ui/BaseTable.vue'
 
 interface ParsedStopListItem {

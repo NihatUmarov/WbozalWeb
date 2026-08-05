@@ -240,7 +240,7 @@ import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'
 import { adminService } from '@/api/adminService'
 import type { UpdateJurpersonRequest, SaveMarketplaceTokenRequest } from '@/api/types'
-import UserManagementModal from './UserManagementModal.vue'
+import UserManagementModal from '@/components/modals/UserManagementModal.vue'
 import BaseModal from '@/components/ui/UnifiedUI.vue'
 
 const showUserManagement = ref<boolean>(false)
