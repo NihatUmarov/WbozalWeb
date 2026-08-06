@@ -63,24 +63,24 @@ export interface StockDocument {
 
 export const stockService = {
   getDocuments: (model: string, archive = false) =>
-    httpClient.post<StockDocument[]>('/api/seller/get_invoice', null, { params: { model, archive } }).then(r => r.data),
+    httpClient.post<StockDocument[]>('/api/seller/invoice/get_invoice', null, { params: { model, archive } }).then(r => r.data),
 
   createDocument: (payload: CreateStockDocumentPayload) =>
-    httpClient.post<{ message: string; id: number }>('/api/seller/create_invoice', payload).then(r => r.data),
+    httpClient.post<{ message: string; id: number }>('/api/seller/invoice/create_invoice', payload).then(r => r.data),
 
   getDocumentDetails: (idRSIncome: number) =>
-    httpClient.post<StockDocumentDetailItem[]>('/api/seller/get_invoice_details', null, { params: { idRSIncome } })
+    httpClient.post<StockDocumentDetailItem[]>('/api/seller/invoice/get_invoice_details', null, { params: { idRSIncome } })
       .then(r => r.data.map(item => ({
         ...item,
         barcodes: item.barcode ? [item.barcode] : []
       }))),
 
   cancelDocument: (idRSIncome: number) =>
-    httpClient.post<{ message: string }>('/api/seller/cancel_invoice', null, { params: { idRSIncome } }).then(r => r.data),
+    httpClient.post<{ message: string }>('/api/seller/invoice/cancel_invoice', null, { params: { idRSIncome } }).then(r => r.data),
 
   getInvoiceHeader: (idRSIncome: number) =>
-    httpClient.post<InvoiceHeaderData>('/api/seller/get_invoice_header', null, { params: { idRSIncome } }).then(r => r.data),
+    httpClient.post<InvoiceHeaderData>('/api/seller/invoice/get_invoice_header', null, { params: { idRSIncome } }).then(r => r.data),
 
   updateInvoiceHeader: (payload: UpdateInvoiceHeaderPayload) =>
-    httpClient.post<{ message: string }>('/api/seller/update_invoice_header', payload).then(r => r.data),
+    httpClient.post<{ message: string }>('/api/seller/invoice/update_invoice_header', payload).then(r => r.data),
 }

@@ -36,9 +36,6 @@ export interface LabelElement {
 export interface LabelTemplate { idName: number; cLabelType: string; elements: LabelElement[]; isCustom: boolean }
 export interface SaveLabelRequest { idName: number; cLabelType: string; elements: LabelElement[] }
 export interface SaveKitRequest { idParentName: number; components: { idChildName: number; qty: number }[] }
-export interface MarketplaceProduct { marketplaceName: string; color: string | null; size: string | null; linkedIdName: number | null; linkedName: string | null; linkedArt: string | null; linkedImage: string | null; isLinkedToKit: boolean; isActive: boolean; barcodes: string[] }
-export interface OzonProduct extends MarketplaceProduct { idOzonProduct: number; idProduct: number; sku: string; marking: string }
-export interface WbProduct extends MarketplaceProduct { idChrt: number; idNm: number; vendorCode: string }
 
 // --- Внутренняя нормализация для гарантированной чистоты данных ---
 const normalize = <T extends object>(p: unknown): T => {
