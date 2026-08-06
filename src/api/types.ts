@@ -98,11 +98,32 @@ export interface MarketplaceTokenResponse {
 }
 
 export interface MarketplaceStat {
-  idName: number
-  name: string
-  art: string
-  image: string | null
   date: string
-  marketplace: 'WB' | 'OZON'
-  qty: number
+  idName: number
+  source: 'WB' | 'OZON'
+  count: number
+  cName: string
+  cArt: string
+  primaryImageURL: string | null
+}
+
+export interface DailyStat {
+  date: string
+  source: 'WB' | 'OZON'
+  count: number
+}
+
+export interface SummaryStat {
+  idName: number
+  source: 'WB' | 'OZON'
+  count: number
+  cName: string
+  cArt: string
+  primaryImageURL: string | null
+}
+
+export interface MarketplaceStatResponse {
+  daily: DailyStat[]
+  summary: SummaryStat[]
+  details: MarketplaceStat[]
 }
