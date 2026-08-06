@@ -96,3 +96,13 @@ export interface MarketplaceTokenResponse {
   appSecret: string | null
   isActive: boolean
 }
+
+export interface MarketplaceStat {
+  idName: number
+  name: string
+  art: string
+  image: string | null
+  date: string
+  marketplace: 'WB' | 'OZON'
+  qty: number
+}

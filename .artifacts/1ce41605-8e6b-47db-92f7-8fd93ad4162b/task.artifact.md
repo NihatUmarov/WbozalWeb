@@ -1,0 +1,13 @@
+- [x] Refactor API Services
+    - [x] Create `src/api/marketplaceService.ts`
+    - [x] Update `src/api/productService.ts` (remove marketplace logic)
+    - [x] Update `src/api/types.ts` with `MarketplaceStat`
+- [x] Implement Utilities
+    - [x] Create `src/utils/excelExporter.ts`
+- [x] Create UI Components
+    - [x] Create `src/components/modals/MarketplaceStatsModal.vue`
+- [x] Update Views
+    - [x] Modify `src/views/MarketplaceLinks.vue` to integrate stats
+- [x] Verification
+    - [x] Verify modal opens and data displays correctly
+    - [x] Verify Excel export works

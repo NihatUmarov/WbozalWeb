@@ -73,13 +73,4 @@ export const productService = {
   saveKit: (payload: SaveKitRequest) => httpClient.post<{ success: boolean; message: string }>('/api/seller/cards/kit/save', payload).then(r => r.data),
   deleteKit: (id: number) => httpClient.delete<{ success: boolean; message: string }>(`/api/seller/cards/kit/${id}`).then(r => r.data),
   bulkSaveKits: (payload: { kits: SaveKitRequest[] }) => httpClient.post<{ success: boolean; message: string }>('/api/seller/cards/kit/bulk-save', payload).then(r => r.data),
-
-  syncMarketplaces: () => httpClient.post<{ success: boolean; message: string }>('/api/seller/cards/sync').then(r => r.data),
-  getOzonProducts: () => httpClient.get<OzonProduct[]>('/api/seller/cards/ozon').then(r => r.data.map(p => normalize<OzonProduct>(p))),
-  getWbProducts: () => httpClient.get<WbProduct[]>('/api/seller/cards/wb').then(r => r.data.map(p => normalize<WbProduct>(p))),
-  linkOzonProduct: (p: { idOzonProduct: number; newIdName: number | null }) => httpClient.post<{ success: boolean; message: string }>('/api/seller/cards/ozon/link', p).then(r => r.data),
-  linkWbProduct: (p: { idChrt: number; newIdName: number | null }) => httpClient.post<{ success: boolean; message: string }>('/api/seller/cards/wb/link', p).then(r => r.data),
-  toggleOzonActive: (p: { idOzonProduct: number; isActive: boolean }) => httpClient.post<{ success: boolean }>('/api/seller/cards/ozon/active', p).then(r => r.data),
-  toggleWbActive: (p: { idChrt: number; isActive: boolean }) => httpClient.post<{ success: boolean }>('/api/seller/cards/wb/active', p).then(r => r.data),
-  bulkUpdateActive: (p: { marketplace: string; barcodes: string[]; isActive: boolean }) => httpClient.post<{ success: boolean; message: string }>('/api/seller/cards/bulk-update-active', p).then(r => r.data),
 }

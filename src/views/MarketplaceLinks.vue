@@ -15,6 +15,10 @@
     >
       <template #header-actions>
         <div class="flex items-center gap-12">
+          <button class="btn btn-secondary flex items-center gap-8" @click="isStatsModalOpen = true">
+            <span class="text-lg">📊</span>
+            <span>Статистика продаж</span>
+          </button>
           <button class="btn btn-secondary flex items-center gap-8" @click="isImportModalOpen = true">
             <img src="@/components/icons/office-exel.svg" alt="Excel" width="20" height="20" />
             <span>Импорт статусов</span>
@@ -130,6 +134,8 @@
       <template #header><h2 class="text-xl font-bold m-0">Массовое обновление статусов</h2></template>
       <StopListBulkImportModal v-if="isImportModalOpen" :catalog-stop-list="activeTab === 'ozon' ? (ozonProducts as MarketplaceProduct[]) : (wbProducts as MarketplaceProduct[])" :marketplace="activeTab" @close="isImportModalOpen = false" @updated="fetchData" />
     </BaseDialog>
+
+    <MarketplaceStatsModal v-model:is-open="isStatsModalOpen" />
   </MainLayout>
 </template>
 
@@ -139,12 +145,14 @@ import BaseDataPage, { type DataPageExposed } from '@/components/ui/BaseDataPage
 import BaseTable, { AppBadge, AppTableCell, type TableColumn } from '@/components/ui/BaseTable.vue'
 import BaseDialog from '@/components/ui/UnifiedUI.vue'
 import StopListBulkImportModal from '@/components/modals/StopListBulkImportModal.vue'
-import { productService, type OzonProduct, type WbProduct, type MarketplaceProduct } from '@/api/productService'
+import MarketplaceStatsModal from '@/components/modals/MarketplaceStatsModal.vue'
+import { productService } from '@/api/productService'
+import { marketplaceService, type OzonProduct, type WbProduct, type MarketplaceProduct } from '@/api/marketplaceService'
 import type { Product } from '@/api/types'
 import { useAsync } from '@/composables/useAsync'
 import { useToast } from '@/composables/useToast'
 
-const toast = useToast(), { loading, run } = useAsync(), isSaving = ref(false), isImportModalOpen = ref(false)
+const toast = useToast(), { loading, run } = useAsync(), isSaving = ref(false), isImportModalOpen = ref(false), isStatsModalOpen = ref(false)
 const activeTab = ref<'ozon' | 'wb'>('wb'), ozonProducts = ref<OzonProduct[]>([]), wbProducts = ref<WbProduct[]>([]), warehouseCards = ref<Product[]>([])
 const isLinkModalOpen = ref(false), selectedMarketplaceProduct = ref<OzonProduct | WbProduct | null>(null), targetIdName = ref<number | null>(null)
 const targetSearchQuery = ref(''), isTargetDropdownOpen = ref(false), targetAutocompleteRef = ref<HTMLElement | null>(null), isSyncing = ref(false)
@@ -177,8 +185,8 @@ const switchTab = (tab: 'ozon' | 'wb') => {
 }
 const fetchData = () => run(async () => {
   warehouseCards.value = await productService.getProducts()
-  if (activeTab.value === 'ozon') ozonProducts.value = await productService.getOzonProducts()
-  else wbProducts.value = await productService.getWbProducts()
+  if (activeTab.value === 'ozon') ozonProducts.value = await marketplaceService.getOzonProducts()
+  else wbProducts.value = await marketplaceService.getWbProducts()
 })
 
 const filteredWarehouseCards = computed(() => {
@@ -188,7 +196,7 @@ const filteredWarehouseCards = computed(() => {
 
 const handleSync = async () => {
   isSyncing.value = true
-  try { const res = await productService.syncMarketplaces(); toast.success(res.message); setTimeout(fetchData, 3000) }
+  try { const res = await marketplaceService.syncMarketplaces(); toast.success(res.message); setTimeout(fetchData, 3000) }
   catch (err: unknown) {
     const errorMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Ошибка'
     toast.error(errorMsg)
@@ -199,8 +207,8 @@ const handleSync = async () => {
 const toggleActive = async (item: OzonProduct | WbProduct) => {
   try {
     const newStatus = !item.isActive
-    if (activeTab.value === 'ozon') await productService.toggleOzonActive({ idOzonProduct: (item as OzonProduct).idOzonProduct, isActive: newStatus })
-    else await productService.toggleWbActive({ idChrt: (item as WbProduct).idChrt, isActive: newStatus })
+    if (activeTab.value === 'ozon') await marketplaceService.toggleOzonActive({ idOzonProduct: (item as OzonProduct).idOzonProduct, isActive: newStatus })
+    else await marketplaceService.toggleWbActive({ idChrt: (item as WbProduct).idChrt, isActive: newStatus })
     item.isActive = newStatus; toast.success(newStatus ? 'Товар в продаже' : 'Товар в стоп-листе')
   } catch { toast.error('Ошибка изменения статуса') }
 }
@@ -215,8 +223,8 @@ const saveLink = async () => {
   if (!selectedMarketplaceProduct.value) return
   isSaving.value = true
   try {
-    if (activeTab.value === 'ozon') await productService.linkOzonProduct({ idOzonProduct: (selectedMarketplaceProduct.value as OzonProduct).idOzonProduct, newIdName: targetIdName.value })
-    else await productService.linkWbProduct({ idChrt: (selectedMarketplaceProduct.value as WbProduct).idChrt, newIdName: targetIdName.value })
+    if (activeTab.value === 'ozon') await marketplaceService.linkOzonProduct({ idOzonProduct: (selectedMarketplaceProduct.value as OzonProduct).idOzonProduct, newIdName: targetIdName.value })
+    else await marketplaceService.linkWbProduct({ idChrt: (selectedMarketplaceProduct.value as WbProduct).idChrt, newIdName: targetIdName.value })
     toast.success('Привязка обновлена!'); isLinkModalOpen.value = false; fetchData()
   } catch { toast.error('Ошибка') } finally { isSaving.value = false }
 }
