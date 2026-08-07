@@ -28,9 +28,9 @@
         <div class="card no-padding overflow-hidden">
           <SharedProductTable :items="documentDetails" :loading="loading" :hide-columns="modelType !== 'FBO' ? ['defectQuant', 'irQuant', 'iBronTask'] : ['irQuant', 'iBronTask']" :extra-columns="invoiceQtyColumns">
             <template #cell(expirationDate)="{ item }"><AppTableCell :value="formatDate(item.expirationDate)" mono bold bg="secondary" border :px="6" :py="4" align="center" /></template>
-            <template #cell(qty)="{ item }"><AppBadge variant="warning" :text="formatQuantity(item.qty)" /></template>
-            <template #cell(qtyFact)="{ item }"><AppBadge variant="success" :text="formatQuantity(item.qtyFact)" /></template>
-            <template #cell(qtyDefect)="{ item }"><AppBadge :variant="Number(item.qtyDefect) > 0 ? 'error' : 'neutral'" :text="formatQuantity(item.qtyDefect)" /></template>
+            <template #cell(qty)="{ item }"><div class="flex justify-center"><AppBadge variant="warning" :text="formatQuantity(item.qty)" /></div></template>
+            <template #cell(qtyFact)="{ item }"><div class="flex justify-center"><AppBadge variant="success" :text="formatQuantity(item.qtyFact)" /></div></template>
+            <template #cell(qtyDefect)="{ item }"><div class="flex justify-center"><AppBadge :variant="Number(item.qtyDefect) > 0 ? 'error' : 'neutral'" :text="formatQuantity(item.qtyDefect)" /></div></template>
           </SharedProductTable>
         </div>
       </section>

@@ -1,0 +1,4 @@
+- `[x]` Исправить вызов API в `StopListBulkImportModal.vue`
+- `[x]` Сделать кнопки в `StopListBulkImportModal.vue` солиднее
+- `[x]` Обновить кнопки в `MarketplaceLinks.vue` (шапка и модалка)
+- `[x]` Прокачать кнопки на экране выбора организации (`JurpersonSelectView.vue`)

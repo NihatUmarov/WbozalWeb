@@ -14,17 +14,19 @@
       @tab-change="switchTab($event as 'ozon' | 'wb')"
     >
       <template #header-actions>
-        <div class="flex items-center gap-12">
-          <button class="btn btn-secondary flex items-center gap-8" @click="isStatsModalOpen = true">
-            <span>Статистика</span>
+        <div class="flex items-center gap-16">
+          <button class="btn btn-secondary h-44 px-20 flex items-center gap-10" @click="isStatsModalOpen = true">
+            <span class="text-lg">📊</span>
+            <span class="font-bold">Статистика</span>
           </button>
-          <button class="btn btn-secondary flex items-center gap-8" @click="isImportModalOpen = true">
-            <img src="@/components/icons/office-exel.svg" alt="Excel" width="20" height="20" />
-            <span>Импорт статусов</span>
+          <button class="btn btn-secondary h-44 px-20 flex items-center gap-10" @click="isImportModalOpen = true">
+            <img src="@/components/icons/office-exel.svg" alt="Excel" style="width: 18px; height: 18px; object-fit: contain;" />
+            <span class="font-bold">Импорт статусов</span>
           </button>
-          <button class="btn btn-primary flex items-center gap-8" :disabled="isSyncing" @click="handleSync">
+          <button class="btn btn-primary h-44 px-20 flex items-center gap-10 shadow-lg shadow-primary/20" :disabled="isSyncing" @click="handleSync">
             <span v-if="isSyncing" class="btn-spinner" />
-            <span>Обновить из МП</span>
+            <span v-else class="text-lg">🔄</span>
+            <span class="font-bold">Обновить из МП</span>
           </button>
         </div>
       </template>
@@ -121,9 +123,9 @@
         </div>
       </div>
       <template #footer>
-        <button class="btn btn-secondary" @click="isLinkModalOpen = false">Отмена</button>
-        <button class="btn btn-primary" :disabled="isSaving" @click="saveLink">
-          <span v-if="isSaving" class="btn-spinner" />
+        <button class="btn btn-secondary px-32" @click="isLinkModalOpen = false">Отмена</button>
+        <button class="btn btn-primary px-32 shadow-lg shadow-primary/20" :disabled="isSaving" @click="saveLink">
+          <span v-if="isSaving" class="btn-spinner mr-8" />
           <span v-else>Сохранить связь</span>
         </button>
       </template>

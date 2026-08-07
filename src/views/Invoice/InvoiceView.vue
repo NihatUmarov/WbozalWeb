@@ -14,20 +14,33 @@
       </div>
     </template>
 
-    <template #cell(id)="{ value, item }"><div class="flex items-center gap-6"><AppTableCell :value="`#${value}`" mono bold color="brand" /><AppBadge v-if="item.model === 'DEF'" variant="error" text="Брак" /></div></template>
+    <template #cell(id)="{ value, item }">
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-2 bg-secondary border border-dark px-8 py-2 rounded-6 font-mono text-[11px]">
+          <span class="text-muted">#</span>
+          <span class="font-bold text-primary">{{ value }}</span>
+        </div>
+        <AppBadge v-if="item.model === 'DEF'" variant="error" text="Брак" />
+      </div>
+    </template>
     <template #cell(date)="{ value }"><AppTableCell :value="formatDate(String(value))" mono size="xs" color="secondary" /></template>
-    <template #cell(workDay)="{ value }"><AppTableCell :value="value ? formatDate(String(value)) : '—'" mono :size="value ? 'xs' : 'sm'" :bold="!!value" :color="value ? 'primary' : 'muted'" /></template>
+    <template #cell(workDay)="{ value }">
+      <div class="flex flex-col">
+        <span v-if="value" class="text-[13px] font-bold text-primary">{{ formatDate(String(value)) }}</span>
+        <span v-else class="text-muted text-xs">—</span>
+      </div>
+    </template>
     <template #cell(status)="{ value }"><AppBadge :variant="getStatusVariant(String(value))" :text="String(value || '—')" /></template>
     <template #cell(direction)="{ value }"><AppBadge v-if="value" :variant="getStatusVariant(String(value))" :text="String(value)" /><AppTableCell v-else value="—" color="muted" /></template>
-    <template #cell(quantity)="{ value }"><AppBadge variant="warning" :text="formatQuantity(value)" /></template>
-    <template #cell(quantityFact)="{ value }"><AppBadge variant="success" :text="formatQuantity(value)" /></template>
-    <template #cell(quantityDefect)="{ value }"><AppBadge :variant="Number(value) > 0 ? 'error' : 'neutral'" :text="formatQuantity(value)" /></template>
+    <template #cell(quantity)="{ value }"><div class="flex justify-center"><AppBadge variant="warning" :text="formatQuantity(value)" /></div></template>
+    <template #cell(quantityFact)="{ value }"><div class="flex justify-center"><AppBadge variant="success" :text="formatQuantity(value)" /></div></template>
+    <template #cell(quantityDefect)="{ value }"><div class="flex justify-center"><AppBadge :variant="Number(value) > 0 ? 'error' : 'neutral'" :text="formatQuantity(value)" /></div></template>
 
     <template #cell(actions)="{ item }">
       <div class="flex items-center gap-8 justify-center">
         <button v-if="permissions.invoice" class="btn btn-secondary btn-icon-sm" :disabled="exportingId === item.id || cancellingId === item.id" @click="exportDocumentToExcel(item.id, item.model)">
           <span v-if="exportingId === item.id" class="mini-loader" />
-          <img v-else src="@/components/icons/office-exel.svg" alt="XLS" class="w-20 h-20" />
+          <img v-else src="@/components/icons/office-exel.svg" alt="XLS" style="width: 16px; height: 16px; object-fit: contain;" />
         </button>
         <button v-if="permissions.invoice && !filterArchive" class="btn btn-secondary btn-icon-sm text-error hover:bg-error-subtle" :disabled="cancellingId === item.id || exportingId === item.id" @click="openCancelConfirm(item.id)">
           <span v-if="cancellingId === item.id" class="mini-loader" />

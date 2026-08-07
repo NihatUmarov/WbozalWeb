@@ -41,10 +41,10 @@
       </SharedProductTable>
     </div>
 
-    <div class="flex justify-end gap-12 mt-16 pt-12 border-t w-full">
-      <button class="btn btn-secondary" @click="handleClose">Отмена</button>
-      <button class="btn btn-primary" :disabled="!parsedItems.length || isSaving" @click="saveBulkStopList">
-        <span v-if="isSaving" class="btn-spinner" />
+    <div class="flex justify-end gap-16 mt-20 pt-16 border-t w-full">
+      <button class="btn btn-secondary px-32" @click="handleClose">Отмена</button>
+      <button class="btn btn-primary px-32" :disabled="!parsedItems.length || isSaving" @click="saveBulkStopList">
+        <span v-if="isSaving" class="btn-spinner mr-8" />
         <span v-else>Применить изменения</span>
       </button>
     </div>
@@ -73,7 +73,7 @@ const props = defineProps<{ catalogStopList: T[]; marketplace: 'ozon' | 'wb' }>(
 const emit = defineEmits<{ (e: 'close'): void; (e: 'updated'): void }>()
 
 const toast = useToast(), { readExcel } = useExcelReader(), isSaving = ref(false), parsedItems = ref<ParsedStopListItem[]>([]), errors = ref<string[]>([])
-const extraColumns: TableColumn<ParsedStopListItem>[] = [{ key: 'newStatus', label: 'Новый статус', minWidth: '140px' }]
+const extraColumns: TableColumn<ParsedStopListItem>[] = [{ key: 'newStatus', label: 'Новый статус', minWidth: '140px', align: 'center' }]
 
 const itemsToEnableCount = computed(() => parsedItems.value.filter(i => i.newIsActive).length)
 const itemsToDisableCount = computed(() => parsedItems.value.filter(i => !i.newIsActive).length)
@@ -117,10 +117,24 @@ const saveBulkStopList = async () => {
     const toEnable = parsedItems.value.filter(i => i.newIsActive).map(i => i.barcodes[0])
     const toDisable = parsedItems.value.filter(i => !i.newIsActive).map(i => i.barcodes[0])
 
-    if (toEnable.length) await productService.bulkUpdateActive({ marketplace: props.marketplace, barcodes: toEnable, isActive: true })
-    if (toDisable.length) await productService.bulkUpdateActive({ marketplace: props.marketplace, barcodes: toDisable, isActive: false })
+    const mp = props.marketplace.toUpperCase()
 
-    toast.success('Статусы обновлены!'); emit('updated'); handleClose()
-  } catch { toast.error('Ошибка сохранения') } finally { isSaving.value = false }
+    if (toEnable.length) {
+      await productService.bulkUpdateMarketplaceActive({
+        marketplace: mp,
+        barcodes: toEnable,
+        isActive: true
+      })
+    }
+    if (toDisable.length) {
+      await productService.bulkUpdateMarketplaceActive({
+        marketplace: mp,
+        barcodes: toDisable,
+        isActive: false
+      })
+    }
+
+    toast.success('Статусы успешно обновлены!'); emit('updated'); handleClose()
+  } catch { toast.error('Ошибка сохранения статусов') } finally { isSaving.value = false }
 }
 </script>

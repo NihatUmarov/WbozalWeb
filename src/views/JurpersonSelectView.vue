@@ -13,57 +13,58 @@
         <p class="text-sm text-muted">Загрузка списка организаций...</p>
       </div>
 
-      <div v-else class="flex flex-col gap-20">
+      <div v-else class="flex flex-col gap-24">
         <div class="flex justify-center">
           <button
-            class="btn"
+            class="btn px-32 h-44 shadow-md transition-all active:scale-95"
             :class="showCreateForm ? 'btn-secondary' : 'btn-primary'"
             @click="toggleCreateForm"
           >
-            {{ showCreateForm ? 'Отменить создание' : 'Добавить новую организацию' }}
+            <span class="text-lg mr-8">{{ showCreateForm ? '✕' : '+' }}</span>
+            <span class="font-bold">{{ showCreateForm ? 'Отменить создание' : 'Добавить организацию' }}</span>
           </button>
         </div>
 
         <Transition name="fade-slide">
-          <div v-if="showCreateForm" class="card flex flex-col gap-20">
-            <h3>Новая организация</h3>
+          <div v-if="showCreateForm" class="card flex flex-col gap-24 border-primary/20 shadow-lg">
+            <h3 class="text-primary font-black">Новая организация</h3>
 
-            <div class="w-full flex flex-col gap-12">
+            <div class="w-full flex flex-col gap-16">
               <div class="input-group">
                 <label class="input-label">ИНН организации</label>
                 <input
                   v-model="newOrg.inn"
                   type="text"
-                  placeholder="Введите от 10 до 16 символов (буквы или цифры)"
-                  class="input"
+                  placeholder="Введите ИНН (10-12 цифр)"
+                  class="input text-lg font-bold tracking-widest"
                   @input="handleInnInput"
                 />
               </div>
               <div v-if="!isDataFetched" class="flex justify-end">
                 <button
-                  class="btn btn-primary"
+                  class="btn btn-primary px-32 h-44 shadow-lg shadow-primary/20"
                   :disabled="loading || !isValidInn"
                   @click="handleSuggestByInn"
                 >
                   <span v-if="loading" class="btn-spinner"></span>
-                  <span v-else>Далее</span>
+                  <span v-else class="font-bold">Далее →</span>
                 </button>
               </div>
             </div>
 
             <Transition name="fade-slide">
-              <div v-if="isDataFetched" class="flex flex-col gap-16">
+              <div v-if="isDataFetched" class="flex flex-col gap-20">
                 <div class="input-group">
-                  <label class="input-label">Сокращенное наименование (для списков)*</label>
+                  <label class="input-label">Сокращенное наименование*</label>
                   <input
                     v-model="newOrg.jurpersonName"
                     type="text"
                     placeholder="ИП Иванов И.И. или ООО 'КОМПАНИЯ'"
-                    class="input"
+                    class="input font-bold"
                   />
                 </div>
                 <div class="input-group">
-                  <label class="input-label">Полное наименование организации*</label>
+                  <label class="input-label">Полное наименование*</label>
                   <input
                     v-model="newOrg.jurpersonFullName"
                     type="text"
@@ -73,12 +74,12 @@
                 </div>
                 <div class="w-full">
                   <button
-                    class="btn btn-primary w-full"
+                    class="btn btn-primary w-full h-52 text-lg shadow-xl shadow-primary/30"
                     :disabled="isCreating"
                     @click="handleCreateJurperson"
                   >
                     <span v-if="isCreating" class="btn-spinner"></span>
-                    <span v-else>Создать организацию</span>
+                    <span v-else class="font-black">Создать рабочее пространство</span>
                   </button>
                 </div>
               </div>
